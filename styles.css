@@ -250,10 +250,11 @@ body {
 }
 
 .calc-big-value {
-  font-size: 26px;
+  font-size: 34px;
   font-weight: 800;
   color: var(--accent);
   font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
 }
 
 .plate-chips {
@@ -495,137 +496,187 @@ input:focus, select:focus {
   background: rgba(255, 255, 255, 0.08);
 }
 
-/* ---------- Карточки таймеров ---------- */
+/* ---------- Герой-блоки таймеров: без рамок, крупные цифры прямо на фоне ---------- */
 
-.timer-card-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
+.bleed {
+  margin-left: -16px;
+  margin-right: -16px;
 }
 
-.timer-card-title {
-  display: flex;
+.hero-stat {
+  text-align: center;
+  padding: 22px 16px 8px;
+}
+
+.hero-stat-idle { padding-top: 6px; }
+
+.hero-stat-label {
+  display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
+  font-size: 12px;
   font-weight: 700;
-  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
   color: var(--text-muted);
 }
 
-.timer-card-title .icon {
-  width: 18px;
-  height: 18px;
-  color: var(--accent);
-}
+.hero-stat-label .icon { width: 14px; height: 14px; color: var(--accent); }
 
-.timer-value {
-  font-size: 22px;
+.hero-stat-value {
+  font-size: 56px;
   font-weight: 800;
+  line-height: 1;
+  margin: 12px 0 14px;
   font-variant-numeric: tabular-nums;
-  letter-spacing: 0.02em;
+  letter-spacing: -0.02em;
+  background: linear-gradient(180deg, #fff 0%, var(--accent) 120%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 6px 28px rgba(255, 122, 61, 0.35));
 }
 
 .timer-last {
   font-size: 12px;
   color: var(--text-muted);
   text-align: center;
-  margin-top: 10px;
-}
-
-.timer-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
   margin-top: 12px;
 }
 
-.timer-actions .chip {
-  flex: none;
-  padding: 10px 14px;
+.btn-ghost {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 14px;
+  font-weight: 600;
+  padding: 8px 14px;
+  cursor: pointer;
+  text-decoration: underline;
+  text-decoration-color: var(--border-strong);
+  text-underline-offset: 3px;
+  transition: color 0.15s ease, transform 0.12s ease;
 }
 
-.timer-actions .btn-secondary {
-  flex: 1;
-  margin-top: 0;
+.btn-ghost:active { color: var(--accent); transform: scale(0.97); }
+
+.rest-banner {
+  padding: 18px 16px 16px;
+  text-align: center;
+  background: linear-gradient(160deg, rgba(255, 122, 61, 0.16) 0%, rgba(255, 61, 94, 0.05) 70%);
+  border-top: 1px solid rgba(255, 122, 61, 0.3);
+  border-bottom: 1px solid rgba(255, 122, 61, 0.3);
+  margin-bottom: 16px;
 }
 
-.rest-card {
-  border-color: rgba(255, 122, 61, 0.35);
+.rest-banner-value {
+  font-size: 46px;
+  font-weight: 800;
+  color: var(--accent);
+  line-height: 1;
+  margin: 10px 0 14px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
 }
 
-.rest-card .timer-value { color: var(--accent); }
-
-.rest-card.rest-done .timer-card-title .icon,
-.rest-card.rest-done .timer-value {
-  color: var(--up);
-}
-
-.rest-card.rest-done {
+.rest-banner.rest-done {
+  background: linear-gradient(160deg, rgba(61, 220, 151, 0.2) 0%, rgba(61, 220, 151, 0.05) 70%);
+  border-color: rgba(61, 220, 151, 0.4);
   animation: restDonePulse 1.2s ease-in-out infinite;
 }
 
-@keyframes restDonePulse {
-  0%, 100% { box-shadow: 0 1px 0 rgba(255, 255, 255, 0.06) inset, 0 0 0 0 rgba(61, 220, 151, 0.45); }
-  50% { box-shadow: 0 1px 0 rgba(255, 255, 255, 0.06) inset, 0 0 0 8px rgba(61, 220, 151, 0); }
+.rest-banner.rest-done .rest-banner-value,
+.rest-banner.rest-done .hero-stat-label .icon {
+  color: var(--up);
 }
 
-/* ---------- Личные рекорды ---------- */
+@keyframes restDonePulse {
+  0%, 100% { box-shadow: inset 0 0 0 0 rgba(61, 220, 151, 0.35); }
+  50% { box-shadow: inset 0 0 40px 0 rgba(61, 220, 151, 0.12); }
+}
 
-.pr-banner {
+.rest-banner-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.rest-banner-actions .chip {
+  flex: none;
+  padding: 9px 16px;
+}
+
+/* ---------- Личные рекорды / вспышка нового рекорда ---------- */
+
+.pr-flash {
   display: flex;
   align-items: center;
   gap: 12px;
-  border-color: rgba(61, 220, 151, 0.4);
+  padding: 14px 16px;
+  background: linear-gradient(135deg, rgba(61, 220, 151, 0.2), rgba(61, 220, 151, 0.04));
+  border-top: 1px solid rgba(61, 220, 151, 0.4);
+  border-bottom: 1px solid rgba(61, 220, 151, 0.4);
+  margin-bottom: 16px;
   animation: prPulse 1.6s ease-in-out infinite;
 }
 
-.pr-banner-icon {
+.pr-flash-icon {
   display: flex;
   color: var(--up);
   filter: drop-shadow(0 0 8px rgba(61, 220, 151, 0.6));
 }
 
-.pr-banner-icon .icon { width: 26px; height: 26px; }
+.pr-flash-icon .icon { width: 28px; height: 28px; }
 
-.pr-banner-body { flex: 1; }
-.pr-banner-body strong { color: var(--up); }
-.pr-banner-sub { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+.pr-flash-body { flex: 1; }
+.pr-flash-body strong { color: var(--up); font-size: 15px; }
+.pr-flash-sub { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
 
 @keyframes prPulse {
-  0%, 100% { box-shadow: 0 1px 0 rgba(255, 255, 255, 0.06) inset, 0 0 0 0 rgba(61, 220, 151, 0.35); }
-  50% { box-shadow: 0 1px 0 rgba(255, 255, 255, 0.06) inset, 0 0 0 6px rgba(61, 220, 151, 0); }
+  0%, 100% { box-shadow: inset 0 0 0 0 rgba(61, 220, 151, 0.3); }
+  50% { box-shadow: inset 0 0 30px 0 rgba(61, 220, 151, 0.14); }
 }
-
-.records-card { padding: 6px 16px; }
 
 .record-row {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 10px 0;
-  border-top: 1px solid var(--border);
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border);
 }
 
-.record-row:first-child { border-top: none; }
+.record-row:last-child { border-bottom: none; }
+
+.record-icon {
+  display: inline-flex;
+  flex-shrink: 0;
+}
+
+.record-icon .icon {
+  width: 16px;
+  height: 16px;
+}
 
 .record-name {
   flex: 1;
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 600;
 }
 
 .record-value {
-  font-size: 14px;
-  font-weight: 700;
+  font-size: 17px;
+  font-weight: 800;
   color: var(--accent);
+  font-variant-numeric: tabular-nums;
 }
 
 .day-summary {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 10px 16px;
+  padding: 4px 0 14px;
   font-size: 13px;
   color: var(--text-muted);
   font-weight: 600;
@@ -639,11 +690,13 @@ input:focus, select:focus {
 
 /* ---------- Календарь/стрик посещений ---------- */
 
+.streak-block { margin-bottom: 8px; }
+
 .streak-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 12px;
+  margin-bottom: 14px;
   gap: 10px;
 }
 
@@ -663,8 +716,8 @@ input:focus, select:focus {
 }
 
 .streak-stat {
-  font-size: 12px;
-  font-weight: 700;
+  font-size: 13px;
+  font-weight: 800;
   color: var(--accent);
   white-space: nowrap;
 }
@@ -687,8 +740,8 @@ input:focus, select:focus {
 }
 
 .streak-cell {
-  width: 11px;
-  height: 11px;
+  width: 12px;
+  height: 12px;
   border-radius: 3px;
   background: var(--surface-2);
   border: 1px solid var(--border);
@@ -708,7 +761,7 @@ input:focus, select:focus {
 .streak-footer {
   font-size: 12px;
   color: var(--text-muted);
-  margin-top: 10px;
+  margin-top: 12px;
   text-align: right;
 }
 
@@ -716,12 +769,14 @@ input:focus, select:focus {
   font-size: 13px;
   color: var(--text-muted);
   text-transform: uppercase;
-  letter-spacing: 0.06em;
-  margin: 20px 0 10px;
+  letter-spacing: 0.08em;
+  margin: 26px 0 12px;
   display: flex;
   align-items: center;
   gap: 8px;
 }
+
+.section-title:first-child { margin-top: 4px; }
 
 .section-title::after {
   content: "";
@@ -743,15 +798,39 @@ input:focus, select:focus {
   padding: 20px 0;
 }
 
-.entry-card { margin-bottom: 10px; }
+/* ---------- Записи тренировок: цветная линия-таймлайн вместо коробок ---------- */
 
-.entry-head {
+.entry-row {
+  border-left: 3px solid var(--border-strong);
+  padding: 12px 0 12px 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+.entry-row:last-child { border-bottom: none; }
+
+.entry-row-head {
   display: flex;
-  align-items: center;
+  align-items: baseline;
+  justify-content: space-between;
   gap: 8px;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
   flex-wrap: wrap;
 }
+
+.entry-row-head strong { font-size: 15px; }
+
+.entry-row-cat {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+.entry-row-cat .icon { width: 12px; height: 12px; }
 
 .badge {
   display: inline-flex;
@@ -822,12 +901,15 @@ input:focus, select:focus {
   height: 16px;
 }
 
-.row-card {
+.library-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 12px 16px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border);
 }
+
+.library-row:last-child { border-bottom: none; }
 
 .period-buttons {
   display: flex;
@@ -863,7 +945,8 @@ input:focus, select:focus {
 
 .summary-card {
   text-align: center;
-  padding: 16px 8px;
+  padding: 18px 6px;
+  border-radius: 16px;
 }
 
 .summary-icon {
@@ -874,16 +957,16 @@ input:focus, select:focus {
 }
 
 .summary-icon .icon {
-  width: 24px;
-  height: 24px;
+  width: 22px;
+  height: 22px;
 }
-.summary-label { font-size: 12px; color: var(--text-muted); margin: 6px 0 4px; }
-.summary-value { font-size: 18px; font-weight: 700; }
-.summary-value.up { color: var(--up); text-shadow: 0 0 16px rgba(61, 220, 151, 0.35); }
-.summary-value.down { color: var(--down); text-shadow: 0 0 16px rgba(255, 92, 108, 0.35); }
+.summary-label { font-size: 11px; color: var(--text-muted); margin: 8px 0 2px; text-transform: uppercase; letter-spacing: 0.04em; }
+.summary-value { font-size: 28px; font-weight: 800; font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
+.summary-value.up { color: var(--up); text-shadow: 0 0 20px rgba(61, 220, 151, 0.4); }
+.summary-value.down { color: var(--down); text-shadow: 0 0 20px rgba(255, 92, 108, 0.4); }
 .summary-value.muted { color: var(--text-muted); font-size: 13px; font-weight: 400; }
 
-.exercise-chart-card { padding: 16px; }
+.exercise-chart-card { padding: 16px; border-top-width: 3px; border-top-style: solid; }
 
 .chart-svg {
   width: 100%;

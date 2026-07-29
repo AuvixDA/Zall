@@ -210,7 +210,7 @@ function updateRestTimerUI() {
 
   const timeEl = widget.querySelector('#rest-time');
   if (timeEl) timeEl.textContent = formatSeconds(remaining);
-  const titleEl = widget.querySelector('.timer-card-title span');
+  const titleEl = widget.querySelector('.hero-stat-label span');
   if (titleEl) titleEl.textContent = done ? 'Отдых окончен' : 'Отдых';
 
   if (done && !state.restTimer.notified) {
@@ -550,22 +550,17 @@ function renderTimerCard() {
   if (state.session) {
     const elapsed = Math.floor((Date.now() - state.session.startedAt) / 1000);
     return `
-      <div class="card timer-card">
-        <div class="timer-card-head">
-          <span class="timer-card-title">${ICONS.timer}<span>Тренировка идёт</span></span>
-          <span id="session-elapsed" class="timer-value">${formatDuration(elapsed)}</span>
-        </div>
-        <button class="btn-secondary" id="end-session-btn">Завершить тренировку</button>
+      <div class="hero-stat">
+        <div class="hero-stat-label">${ICONS.timer}<span>Тренировка идёт</span></div>
+        <div class="hero-stat-value" id="session-elapsed">${formatDuration(elapsed)}</div>
+        <button class="btn-ghost" id="end-session-btn">Завершить тренировку</button>
       </div>
     `;
   }
 
   const last = state.sessions.length ? state.sessions[state.sessions.length - 1] : null;
   return `
-    <div class="card timer-card">
-      <div class="timer-card-head">
-        <span class="timer-card-title">${ICONS.timer}<span>Тренировка</span></span>
-      </div>
+    <div class="hero-stat hero-stat-idle">
       <button class="btn-primary" id="start-session-btn">Начать тренировку</button>
       ${last ? `<div class="timer-last">Последняя: ${formatSessionSummary(last)}</div>` : ''}
     </div>
@@ -584,15 +579,13 @@ function renderRestWidget() {
   const remaining = active ? Math.max(0, Math.ceil((state.restTimer.endAt - Date.now()) / 1000)) : 0;
   const done = active && remaining <= 0;
   return `
-    <div class="card timer-card rest-card ${done ? 'rest-done' : ''}" id="rest-timer-widget" ${active ? '' : 'hidden'}>
-      <div class="timer-card-head">
-        <span class="timer-card-title">${ICONS.hourglass}<span>${done ? 'Отдых окончен' : 'Отдых'}</span></span>
-        <span id="rest-time" class="timer-value">${formatSeconds(remaining)}</span>
-      </div>
-      <div class="timer-actions">
+    <div class="rest-banner bleed ${done ? 'rest-done' : ''}" id="rest-timer-widget" ${active ? '' : 'hidden'}>
+      <div class="hero-stat-label">${ICONS.hourglass}<span>${done ? 'Отдых окончен' : 'Отдых'}</span></div>
+      <div class="rest-banner-value" id="rest-time">${formatSeconds(remaining)}</div>
+      <div class="rest-banner-actions">
         <button class="chip" id="rest-minus-btn">-15с</button>
         <button class="chip" id="rest-plus-btn">+15с</button>
-        <button class="btn-secondary" id="rest-skip-btn">Пропустить</button>
+        <button class="btn-ghost" id="rest-skip-btn">Пропустить</button>
       </div>
     </div>
   `;
@@ -603,11 +596,11 @@ function renderPRBanner() {
   const ex = getExercise(state.lastPR.exerciseId);
   if (!ex) return '';
   return `
-    <div class="card pr-banner">
-      <span class="pr-banner-icon">${ICONS.trophy}</span>
-      <div class="pr-banner-body">
+    <div class="pr-flash bleed">
+      <span class="pr-flash-icon">${ICONS.trophy}</span>
+      <div class="pr-flash-body">
         <strong>Новый рекорд!</strong>
-        <div class="pr-banner-sub">${escapeHtml(ex.name)} — ${formatMetric(ex.category, state.lastPR.value)}</div>
+        <div class="pr-flash-sub">${escapeHtml(ex.name)} — ${formatMetric(ex.category, state.lastPR.value)}</div>
       </div>
       <button class="icon-btn" id="pr-banner-close" aria-label="Скрыть">${ICONS.close}</button>
     </div>
@@ -716,10 +709,10 @@ function renderEntryCard(entry) {
   }).join('');
 
   return `
-    <div class="card entry-card">
-      <div class="entry-head">
-        <span class="badge" style="background:${meta.color}22;color:${meta.color}">${meta.icon}<span>${meta.label}</span></span>
+    <div class="entry-row" style="border-left-color:${meta.color}">
+      <div class="entry-row-head">
         <strong>${escapeHtml(ex.name)}</strong>
+        <span class="entry-row-cat" style="color:${meta.color}">${meta.icon}<span>${meta.label}</span></span>
       </div>
       ${setsHtml}
     </div>
@@ -843,7 +836,7 @@ function renderLibraryList() {
     return `
       <div class="section-title">${CATEGORY_META[cat].icon}<span>${CATEGORY_META[cat].label}</span></div>
       ${items.map(e => `
-        <div class="card row-card">
+        <div class="library-row">
           <span>${escapeHtml(e.name)}</span>
           <span class="set-row-actions">
             <button class="icon-btn ${e.favorite ? 'is-favorite' : ''}" data-toggle-fav="${e.id}" aria-label="Избранное">${e.favorite ? ICONS.starFilled : ICONS.starOutline}</button>
@@ -913,7 +906,7 @@ function renderDaySummaryHtml(sessions) {
   const totalVolume = sessions.reduce((sum, s) => sum + (s.totalVolume || 0), 0);
   const parts = [formatDuration(totalDuration), `${totalSets} подх.`];
   if (totalVolume > 0) parts.push(`${Math.round(totalVolume)} кг`);
-  return `<div class="card day-summary">${ICONS.timer}<span>${parts.join(' · ')}</span></div>`;
+  return `<div class="day-summary">${ICONS.timer}<span>${parts.join(' · ')}</span></div>`;
 }
 
 // ---------- Tab: Analytics (Аналитика) ----------
@@ -1000,7 +993,7 @@ function renderStreakCalendar() {
   const totalTrained = days.filter(d => d <= today && trainedDates.has(toISO(d))).length;
 
   return `
-    <div class="card streak-card">
+    <div class="streak-block">
       <div class="streak-head">
         <span class="streak-title">${ICONS.calendar}<span>Регулярность</span></span>
         <span class="streak-stat">${streak > 0 ? `Серия: ${streak} дн.` : 'Начните серию сегодня'}</span>
@@ -1023,18 +1016,16 @@ function renderRecordsSection() {
 
   return `
     <div class="section-title">${ICONS.trophy}<span>Личные рекорды</span></div>
-    <div class="card records-card">
-      ${rows.map(r => {
-        const meta = CATEGORY_META[r.ex.category];
-        return `
-          <div class="record-row">
-            <span class="badge" style="background:${meta.color}22;color:${meta.color}">${meta.icon}</span>
-            <span class="record-name">${escapeHtml(r.ex.name)}</span>
-            <span class="record-value">${formatMetric(r.ex.category, r.best)}</span>
-          </div>
-        `;
-      }).join('')}
-    </div>
+    ${rows.map(r => {
+      const meta = CATEGORY_META[r.ex.category];
+      return `
+        <div class="record-row">
+          <span class="record-icon" style="color:${meta.color}">${meta.icon}</span>
+          <span class="record-name">${escapeHtml(r.ex.name)}</span>
+          <span class="record-value">${formatMetric(r.ex.category, r.best)}</span>
+        </div>
+      `;
+    }).join('')}
   `;
 }
 
@@ -1066,6 +1057,7 @@ function average(arr) {
 function renderSummaryCards(startDate, endDate) {
   const container = document.getElementById('summary-cards');
   const cards = Object.entries(CATEGORY_META).map(([cat, meta]) => {
+    const tileStyle = `background: linear-gradient(160deg, ${meta.color}26 0%, ${meta.color}08 65%, transparent 100%); border-color: ${meta.color}40;`;
     const exercises = state.exercises.filter(e => e.category === cat);
     const trends = exercises
       .map(ex => trendForExercise(ex, startDate, endDate))
@@ -1073,7 +1065,7 @@ function renderSummaryCards(startDate, endDate) {
 
     if (trends.length === 0) {
       return `
-        <div class="card summary-card">
+        <div class="card summary-card" style="${tileStyle}">
           <div class="summary-icon" style="color:${meta.color}">${meta.icon}</div>
           <div class="summary-label">${meta.label}</div>
           <div class="summary-value muted">нет данных</div>
@@ -1085,7 +1077,7 @@ function renderSummaryCards(startDate, endDate) {
     const sign = avgPct >= 0 ? '+' : '';
     const colorClass = avgPct >= 0 ? 'up' : 'down';
     return `
-      <div class="card summary-card">
+      <div class="card summary-card" style="${tileStyle}">
         <div class="summary-icon" style="color:${meta.color}">${meta.icon}</div>
         <div class="summary-label">${meta.label}</div>
         <div class="summary-value ${colorClass}">${sign}${avgPct.toFixed(1)}%</div>
@@ -1102,7 +1094,7 @@ function renderExerciseCharts(startDate, endDate) {
     const meta = CATEGORY_META[ex.category];
     if (!trend) {
       return `
-        <div class="card exercise-chart-card">
+        <div class="card exercise-chart-card" style="border-top-color:${meta.color}">
           <div class="entry-head">
             <span class="badge" style="background:${meta.color}22;color:${meta.color}">${meta.icon}<span>${meta.label}</span></span>
             <strong>${escapeHtml(ex.name)}</strong>
@@ -1118,7 +1110,7 @@ function renderExerciseCharts(startDate, endDate) {
       : `<span class="pct-badge muted">мало данных</span>`;
 
     return `
-      <div class="card exercise-chart-card">
+      <div class="card exercise-chart-card" style="border-top-color:${meta.color}">
         <div class="entry-head">
           <span class="badge" style="background:${meta.color}22;color:${meta.color}">${meta.icon}<span>${meta.label}</span></span>
           <strong>${escapeHtml(ex.name)}</strong>
