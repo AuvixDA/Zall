@@ -27,7 +27,8 @@ const ICONS = {
   repeat: '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4v5h5"/><path d="M20 20v-5h-5"/><path d="M5 13a7 7 0 0 1 12-4.5L20 11"/><path d="M19 11a7 7 0 0 1-12 4.5L4 13"/></svg>',
   starOutline: '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 3.2l2.7 5.6 6.1.7-4.5 4.2 1.2 6.1L12 16.9l-5.5 2.9 1.2-6.1-4.5-4.2 6.1-.7z"/></svg>',
   starFilled: '<svg class="icon" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 3.2l2.7 5.6 6.1.7-4.5 4.2 1.2 6.1L12 16.9l-5.5 2.9 1.2-6.1-4.5-4.2 6.1-.7z"/></svg>',
-  search: '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.2" y2="16.2"/></svg>'
+  search: '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.2" y2="16.2"/></svg>',
+  trophy: '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8"/><path d="M12 17v4"/><path d="M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M7 5H4a3 3 0 0 0 3 4"/><path d="M17 5h3a3 3 0 0 1-3 4"/></svg>'
 };
 
 const CATEGORY_META = {
@@ -67,7 +68,8 @@ let state = {
   sessions: [],
   logExerciseId: null,
   editingSet: null,
-  librarySearch: ''
+  librarySearch: '',
+  lastPR: null
 };
 
 let audioCtx = null;
@@ -348,7 +350,22 @@ function render() {
 function switchTab(tab) {
   state.tab = tab;
   state.editingSet = null;
+  state.lastPR = null;
   render();
+}
+
+// ---------- Личные рекорды ----------
+
+function getBestMetric(exerciseId) {
+  const ex = getExercise(exerciseId);
+  if (!ex) return null;
+  let best = null;
+  state.entries.forEach(e => {
+    if (e.exerciseId !== exerciseId) return;
+    const val = computeEntryMetric(ex, e);
+    if (val !== null && (best === null || val > best)) best = val;
+  });
+  return best;
 }
 
 // ---------- Tab: Log (Сегодня) ----------
@@ -376,6 +393,7 @@ function renderLog() {
   panel.innerHTML = `
     ${renderTimerCard()}
     ${renderRestWidget()}
+    ${renderPRBanner()}
 
     <div class="card">
       <label class="field-label">Дата тренировки</label>
@@ -428,6 +446,14 @@ function renderLog() {
       if (!set) return;
       ensureAudioUnlocked();
       addSetToLog(ex.id, state.logDate, set);
+    });
+  }
+
+  const prBannerClose = document.getElementById('pr-banner-close');
+  if (prBannerClose) {
+    prBannerClose.addEventListener('click', () => {
+      state.lastPR = null;
+      renderLog();
     });
   }
 
@@ -546,6 +572,22 @@ function renderRestWidget() {
   `;
 }
 
+function renderPRBanner() {
+  if (!state.lastPR) return '';
+  const ex = getExercise(state.lastPR.exerciseId);
+  if (!ex) return '';
+  return `
+    <div class="card pr-banner">
+      <span class="pr-banner-icon">${ICONS.trophy}</span>
+      <div class="pr-banner-body">
+        <strong>Новый рекорд!</strong>
+        <div class="pr-banner-sub">${escapeHtml(ex.name)} — ${formatMetric(ex.category, state.lastPR.value)}</div>
+      </div>
+      <button class="icon-btn" id="pr-banner-close" aria-label="Скрыть">${ICONS.close}</button>
+    </div>
+  `;
+}
+
 function setFieldsHtml(category) {
   const fields = FIELD_CONFIG[category];
   const labels = {
@@ -575,6 +617,9 @@ function readSetFields(category) {
 }
 
 function addSetToLog(exerciseId, date, set) {
+  const ex = getExercise(exerciseId);
+  const prevBest = getBestMetric(exerciseId);
+
   let entry = state.entries.find(e => e.exerciseId === exerciseId && e.date === date);
   if (!entry) {
     entry = { id: uid(), exerciseId, date, sets: [] };
@@ -582,6 +627,11 @@ function addSetToLog(exerciseId, date, set) {
   }
   entry.sets.push(set);
   saveEntries();
+
+  const newMetric = ex ? computeEntryMetric(ex, entry) : null;
+  state.lastPR = (newMetric !== null && (prevBest === null || newMetric > prevBest))
+    ? { exerciseId, value: newMetric }
+    : null;
 
   if (date === todayISO()) {
     if (!state.session) startSession();
@@ -833,6 +883,7 @@ function renderAnalytics() {
   const panel = document.getElementById('panel-analytics');
 
   panel.innerHTML = `
+    ${renderRecordsSection()}
     <div class="card">
       <label class="field-label">Период</label>
       <div class="period-buttons">
@@ -856,6 +907,31 @@ function renderAnalytics() {
 
   renderSummaryCards(startDate, endDate);
   renderExerciseCharts(startDate, endDate);
+}
+
+function renderRecordsSection() {
+  const rows = state.exercises
+    .map(ex => ({ ex, best: getBestMetric(ex.id) }))
+    .filter(r => r.best !== null)
+    .sort((a, b) => a.ex.name.localeCompare(b.ex.name));
+
+  if (rows.length === 0) return '';
+
+  return `
+    <div class="section-title">${ICONS.trophy}<span>Личные рекорды</span></div>
+    <div class="card records-card">
+      ${rows.map(r => {
+        const meta = CATEGORY_META[r.ex.category];
+        return `
+          <div class="record-row">
+            <span class="badge" style="background:${meta.color}22;color:${meta.color}">${meta.icon}</span>
+            <span class="record-name">${escapeHtml(r.ex.name)}</span>
+            <span class="record-value">${formatMetric(r.ex.category, r.best)}</span>
+          </div>
+        `;
+      }).join('')}
+    </div>
+  `;
 }
 
 function trendForExercise(exercise, startDate, endDate) {
