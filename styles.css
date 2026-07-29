@@ -1,10 +1,13 @@
 :root {
-  --bg: #0e0f13;
-  --surface: rgba(30, 33, 42, 0.72);
-  --surface-solid: #1b1e27;
-  --surface-2: rgba(255, 255, 255, 0.05);
-  --text: #f2f3f5;
-  --text-muted: #9096a8;
+  /* Тёплая нейтральная палитра (тёмная бронза/уголь), а не стандартный
+     холодный сине-серый "SaaS-дашборд" — подобрана под фото кирпичной стены. */
+  --bg: #120e0b;
+  --surface: rgba(42, 34, 27, 0.72);
+  --surface-solid: #241d17;
+  --surface-2: rgba(255, 238, 220, 0.055);
+  --text: #f5efe7;
+  --text-muted: #a89a8b;
+  --warm-rgb: 255, 238, 220;
   /* Приглушённая тёплая палитра, подобранная под фото кирпичной стены зала */
   --accent: #c9793f;
   --accent-rgb: 201, 121, 63;
@@ -12,8 +15,8 @@
   --accent-deep-rgb: 138, 84, 39;
   --steel: #7a97ac;
   --steel-rgb: 122, 151, 172;
-  --border: rgba(255, 255, 255, 0.08);
-  --border-strong: rgba(255, 255, 255, 0.14);
+  --border: rgba(255, 238, 220, 0.09);
+  --border-strong: rgba(255, 238, 220, 0.15);
   --up: #7cae70;
   --up-rgb: 124, 174, 112;
   --down: #c15c50;
@@ -90,7 +93,7 @@ body {
 .app-header {
   padding: env(safe-area-inset-top, 0) 20px 14px;
   padding-top: calc(env(safe-area-inset-top, 0) + 18px);
-  background: rgba(14, 15, 19, 0.72);
+  background: rgba(18, 13, 10, 0.75);
   backdrop-filter: blur(14px) saturate(140%);
   -webkit-backdrop-filter: blur(14px) saturate(140%);
   border-bottom: 1px solid var(--border);
@@ -194,7 +197,7 @@ body {
   position: fixed;
   inset: 0;
   z-index: 30;
-  background: rgba(5, 6, 8, 0.65);
+  background: rgba(8, 5, 3, 0.68);
   backdrop-filter: blur(4px);
   display: flex;
   align-items: flex-end;
@@ -288,7 +291,7 @@ body {
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  border: 1px solid rgba(var(--warm-rgb), 0.3);
   flex-shrink: 0;
 }
 
@@ -317,7 +320,7 @@ body {
 
 .card {
   background:
-    linear-gradient(155deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0) 40%),
+    linear-gradient(155deg, rgba(var(--warm-rgb), 0.05) 0%, rgba(var(--warm-rgb), 0) 40%),
     var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -326,7 +329,7 @@ body {
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
   box-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.06) inset,
+    0 1px 0 rgba(var(--warm-rgb), 0.06) inset,
     0 10px 24px -16px rgba(0, 0, 0, 0.6);
   transition: transform 0.15s ease, border-color 0.15s ease;
 }
@@ -422,7 +425,7 @@ input:focus, select:focus {
 }
 
 .search-result-item:last-child { border-bottom: none; }
-.search-result-item:active { background: rgba(255, 255, 255, 0.06); }
+.search-result-item:active { background: rgba(var(--warm-rgb), 0.06); }
 .search-result-item .muted { color: var(--text-muted); font-size: 12px; }
 
 .fav-chips {
@@ -502,7 +505,7 @@ input:focus, select:focus {
 
 .btn-secondary:active {
   transform: scale(0.97);
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(var(--warm-rgb), 0.08);
 }
 
 /* ---------- Герой-блоки таймеров: без рамок, крупные цифры прямо на фоне ---------- */
@@ -1074,17 +1077,17 @@ input:focus, select:focus {
   display: flex;
   align-items: center;
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0) 35%),
-    repeating-linear-gradient(100deg, rgba(255, 255, 255, 0.025) 0px, rgba(255, 255, 255, 0.025) 1px, transparent 1px, transparent 4px),
+    linear-gradient(180deg, rgba(var(--warm-rgb), 0.05) 0%, rgba(var(--warm-rgb), 0) 35%),
+    repeating-linear-gradient(100deg, rgba(var(--warm-rgb), 0.025) 0px, rgba(var(--warm-rgb), 0.025) 1px, transparent 1px, transparent 4px),
     rgba(18, 14, 11, 0.9);
   backdrop-filter: blur(18px) saturate(140%);
   -webkit-backdrop-filter: blur(18px) saturate(140%);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-top-color: rgba(255, 255, 255, 0.16);
+  border: 1px solid rgba(var(--warm-rgb), 0.1);
+  border-top-color: rgba(var(--warm-rgb), 0.16);
   border-radius: 16px;
   padding: 8px 6px;
   padding-bottom: calc(8px + env(safe-area-inset-bottom));
-  box-shadow: 0 16px 40px -16px rgba(0, 0, 0, 0.75), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  box-shadow: 0 16px 40px -16px rgba(0, 0, 0, 0.75), inset 0 1px 0 rgba(var(--warm-rgb), 0.05);
   z-index: 20;
   max-width: 560px;
   margin: 0 auto;
@@ -1097,7 +1100,7 @@ input:focus, select:focus {
   left: 10px;
   right: 10px;
   height: 4px;
-  background: linear-gradient(180deg, rgba(0, 0, 0, 0.5), rgba(255, 255, 255, 0.06) 40%, rgba(0, 0, 0, 0.5));
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.5), rgba(var(--warm-rgb), 0.06) 40%, rgba(0, 0, 0, 0.5));
   border-radius: 2px;
   z-index: 0;
 }
@@ -1128,9 +1131,9 @@ input:focus, select:focus {
   align-items: center;
   justify-content: center;
   background: radial-gradient(circle at 32% 28%, #3d3730 0%, #1c1815 68%);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(var(--warm-rgb), 0.08);
   box-shadow:
-    inset 0 2px 3px rgba(255, 255, 255, 0.08),
+    inset 0 2px 3px rgba(var(--warm-rgb), 0.08),
     inset 0 -3px 6px rgba(0, 0, 0, 0.55),
     0 2px 5px rgba(0, 0, 0, 0.4);
   transition: background 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease, transform 0.15s ease;
@@ -1157,7 +1160,7 @@ input:focus, select:focus {
   background: radial-gradient(circle at 32% 28%, rgba(var(--accent-rgb), 1) 0%, rgba(var(--accent-deep-rgb), 1) 72%);
   border-color: rgba(var(--accent-rgb), 0.7);
   box-shadow:
-    inset 0 2px 3px rgba(255, 255, 255, 0.3),
+    inset 0 2px 3px rgba(var(--warm-rgb), 0.3),
     inset 0 -3px 6px rgba(0, 0, 0, 0.35),
     0 0 0 3px rgba(var(--accent-rgb), 0.16),
     0 0 18px rgba(var(--accent-rgb), 0.55);
@@ -1180,7 +1183,7 @@ input:focus, select:focus {
   justify-content: space-between;
   gap: 12px;
   padding: 13px 16px;
-  background: rgba(27, 30, 39, 0.94);
+  background: rgba(36, 29, 23, 0.94);
   backdrop-filter: blur(14px) saturate(140%);
   -webkit-backdrop-filter: blur(14px) saturate(140%);
   border: 1px solid var(--border-strong);
