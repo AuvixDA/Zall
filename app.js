@@ -28,7 +28,8 @@ const ICONS = {
   starOutline: '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 3.2l2.7 5.6 6.1.7-4.5 4.2 1.2 6.1L12 16.9l-5.5 2.9 1.2-6.1-4.5-4.2 6.1-.7z"/></svg>',
   starFilled: '<svg class="icon" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 3.2l2.7 5.6 6.1.7-4.5 4.2 1.2 6.1L12 16.9l-5.5 2.9 1.2-6.1-4.5-4.2 6.1-.7z"/></svg>',
   search: '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.2" y2="16.2"/></svg>',
-  trophy: '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8"/><path d="M12 17v4"/><path d="M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M7 5H4a3 3 0 0 0 3 4"/><path d="M17 5h3a3 3 0 0 1-3 4"/></svg>'
+  trophy: '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8"/><path d="M12 17v4"/><path d="M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M7 5H4a3 3 0 0 0 3 4"/><path d="M17 5h3a3 3 0 0 1-3 4"/></svg>',
+  calendar: '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><line x1="3" y1="9.5" x2="21" y2="9.5"/><line x1="8" y1="3" x2="8" y2="7"/><line x1="16" y1="3" x2="16" y2="7"/></svg>'
 };
 
 const CATEGORY_META = {
@@ -921,6 +922,7 @@ function renderAnalytics() {
   const panel = document.getElementById('panel-analytics');
 
   panel.innerHTML = `
+    ${renderStreakCalendar()}
     ${renderRecordsSection()}
     <div class="card">
       <label class="field-label">Период</label>
@@ -945,6 +947,70 @@ function renderAnalytics() {
 
   renderSummaryCards(startDate, endDate);
   renderExerciseCharts(startDate, endDate);
+}
+
+function getTrainedDatesSet() {
+  const set = new Set();
+  state.entries.forEach(e => set.add(e.date));
+  state.sessions.forEach(s => set.add(s.date));
+  return set;
+}
+
+function renderStreakCalendar() {
+  const trainedDates = getTrainedDatesSet();
+  const weeks = 10;
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const dayOfWeek = (today.getDay() + 6) % 7; // 0=Пн ... 6=Вс
+  const weekEnd = new Date(today);
+  weekEnd.setDate(today.getDate() + (6 - dayOfWeek));
+  const startDate = new Date(weekEnd);
+  startDate.setDate(weekEnd.getDate() - weeks * 7 + 1);
+
+  const days = [];
+  for (let i = 0; i < weeks * 7; i++) {
+    const d = new Date(startDate);
+    d.setDate(startDate.getDate() + i);
+    days.push(d);
+  }
+
+  let columnsHtml = '';
+  for (let w = 0; w < weeks; w++) {
+    let colCells = '';
+    for (let d = 0; d < 7; d++) {
+      const date = days[w * 7 + d];
+      const iso = toISO(date);
+      const isFuture = date > today;
+      const trained = trainedDates.has(iso);
+      const cls = isFuture ? 'streak-cell future' : (trained ? 'streak-cell trained' : 'streak-cell');
+      colCells += `<div class="${cls}" title="${iso}"></div>`;
+    }
+    columnsHtml += `<div class="streak-col">${colCells}</div>`;
+  }
+
+  let streak = 0;
+  const cursor = new Date(today);
+  if (!trainedDates.has(toISO(cursor))) cursor.setDate(cursor.getDate() - 1);
+  while (trainedDates.has(toISO(cursor))) {
+    streak++;
+    cursor.setDate(cursor.getDate() - 1);
+  }
+
+  const totalTrained = days.filter(d => d <= today && trainedDates.has(toISO(d))).length;
+
+  return `
+    <div class="card streak-card">
+      <div class="streak-head">
+        <span class="streak-title">${ICONS.calendar}<span>Регулярность</span></span>
+        <span class="streak-stat">${streak > 0 ? `Серия: ${streak} дн.` : 'Начните серию сегодня'}</span>
+      </div>
+      <div class="streak-grid-wrap">
+        <div class="streak-grid">${columnsHtml}</div>
+      </div>
+      <div class="streak-footer">${totalTrained} тренировок за ${weeks} недель</div>
+    </div>
+  `;
 }
 
 function renderRecordsSection() {
