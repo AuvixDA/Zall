@@ -232,6 +232,18 @@ input:focus, select:focus {
   margin-top: 10px;
 }
 
+.last-hint {
+  font-size: 12px;
+  color: var(--text-muted);
+  background: var(--surface-2);
+  border-left: 2px solid var(--accent);
+  padding: 7px 10px;
+  border-radius: 6px;
+  margin-top: 10px;
+}
+
+.last-hint:empty { display: none; }
+
 .set-field label {
   display: block;
   font-size: 12px;
@@ -271,7 +283,16 @@ input:focus, select:focus {
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   transition: transform 0.12s ease, background 0.15s ease;
+}
+
+.btn-secondary .icon {
+  width: 16px;
+  height: 16px;
 }
 
 .btn-secondary:active {
@@ -419,6 +440,32 @@ input:focus, select:focus {
   border-top: 1px solid var(--border);
   font-size: 14px;
 }
+
+.set-row-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.set-row-editing {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+  padding: 12px 0;
+}
+
+.set-row-editing .set-fields {
+  margin-top: 0;
+}
+
+.set-edit-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.set-edit-actions [data-save-edit] { color: var(--up); }
+.set-edit-actions [data-cancel-edit] { color: var(--down); }
 
 .icon-btn {
   background: none;

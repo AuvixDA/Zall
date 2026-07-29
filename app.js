@@ -21,7 +21,10 @@ const ICONS = {
   up: '<svg class="icon" viewBox="0 0 24 24" fill="currentColor"><path d="M12 5l7 10H5z"/></svg>',
   down: '<svg class="icon" viewBox="0 0 24 24" fill="currentColor"><path d="M12 19 5 9h14z"/></svg>',
   timer: '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="8"/><line x1="12" y1="13" x2="12" y2="9"/><line x1="12" y1="13" x2="15" y2="14.5"/><line x1="9" y1="2" x2="15" y2="2"/><line x1="12" y1="2" x2="12" y2="4.5"/></svg>',
-  hourglass: '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12"/><path d="M6 21h12"/><path d="M6 3c0 5 5 6 6 9-1 3-6 4-6 9"/><path d="M18 3c0 5-5 6-6 9 1 3 6 4 6 9"/></svg>'
+  hourglass: '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12"/><path d="M6 21h12"/><path d="M6 3c0 5 5 6 6 9-1 3-6 4-6 9"/><path d="M18 3c0 5-5 6-6 9 1 3 6 4 6 9"/></svg>',
+  edit: '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>',
+  check: '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12l5 5L20 6"/></svg>',
+  repeat: '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4v5h5"/><path d="M20 20v-5h-5"/><path d="M5 13a7 7 0 0 1 12-4.5L20 11"/><path d="M19 11a7 7 0 0 1-12 4.5L4 13"/></svg>'
 };
 
 const CATEGORY_META = {
@@ -58,7 +61,9 @@ let state = {
   analyticsCategory: 'all',
   restTimer: null,
   session: null,
-  sessions: []
+  sessions: [],
+  logExerciseId: null,
+  editingSet: null
 };
 
 let audioCtx = null;
@@ -338,6 +343,7 @@ function render() {
 
 function switchTab(tab) {
   state.tab = tab;
+  state.editingSet = null;
   render();
 }
 
@@ -346,11 +352,19 @@ function switchTab(tab) {
 function renderLog() {
   const panel = document.getElementById('panel-log');
 
+  if (!state.logExerciseId || !getExercise(state.logExerciseId)) {
+    state.logExerciseId = state.exercises.length ? state.exercises[0].id : null;
+  }
+
   const exOptions = state.exercises
-    .map(e => `<option value="${e.id}">${escapeHtml(e.name)} (${CATEGORY_META[e.category].label})</option>`)
+    .map(e => `<option value="${e.id}" ${e.id === state.logExerciseId ? 'selected' : ''}>${escapeHtml(e.name)} (${CATEGORY_META[e.category].label})</option>`)
     .join('');
 
   const dayEntries = state.entries.filter(e => e.date === state.logDate);
+  const selectedEx = getExercise(state.logExerciseId);
+  const todayEntryForSelected = selectedEx
+    ? state.entries.find(e => e.exerciseId === selectedEx.id && e.date === state.logDate)
+    : null;
 
   panel.innerHTML = `
     ${renderTimerCard()}
@@ -364,8 +378,10 @@ function renderLog() {
     <div class="card">
       <label class="field-label">Упражнение / тренажёр</label>
       <select id="log-exercise">${exOptions || '<option disabled>Сначала добавьте упражнение</option>'}</select>
+      <div id="log-last-hint">${renderLastHintHtml(selectedEx)}</div>
       <div id="log-fields" class="set-fields"></div>
       <button class="btn-primary" id="log-add-set">+ Добавить подход</button>
+      ${todayEntryForSelected && todayEntryForSelected.sets.length ? `<button class="btn-secondary" id="repeat-set-btn">${ICONS.repeat}<span>Повторить последний подход</span></button>` : ''}
     </div>
 
     <div class="section-title">Сегодня записано</div>
@@ -383,7 +399,10 @@ function renderLog() {
     document.getElementById('log-fields').innerHTML = ex ? setFieldsHtml(ex.category) : '';
   };
   if (exSelect) {
-    exSelect.addEventListener('change', renderFields);
+    exSelect.addEventListener('change', () => {
+      state.logExerciseId = exSelect.value;
+      renderLog();
+    });
     renderFields();
   }
 
@@ -399,11 +418,19 @@ function renderLog() {
     });
   }
 
-  panel.querySelectorAll('[data-remove-set]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      removeSet(btn.dataset.entryId, Number(btn.dataset.setIndex));
+  const repeatBtn = document.getElementById('repeat-set-btn');
+  if (repeatBtn) {
+    repeatBtn.addEventListener('click', () => {
+      const ex = getExercise(state.logExerciseId);
+      const entry = ex ? state.entries.find(e => e.exerciseId === ex.id && e.date === state.logDate) : null;
+      if (!entry || !entry.sets.length) return;
+      const lastSet = entry.sets[entry.sets.length - 1];
+      ensureAudioUnlocked();
+      addSetToLog(ex.id, state.logDate, { ...lastSet });
     });
-  });
+  }
+
+  attachEntryCardListeners(panel, renderLog);
 
   const startBtn = document.getElementById('start-session-btn');
   if (startBtn) {
@@ -539,12 +566,34 @@ function renderEntryCard(entry) {
   const meta = CATEGORY_META[ex.category];
   const fields = FIELD_CONFIG[ex.category];
   const labels = { weight: 'кг', reps: 'повт', duration: 'мин', distance: 'км' };
+  const fieldLabels = { weight: 'Вес, кг', reps: 'Повторы', duration: 'Время, мин', distance: 'Дистанция, км' };
 
   const setsHtml = entry.sets.map((s, i) => {
+    const isEditing = state.editingSet && state.editingSet.entryId === entry.id && state.editingSet.setIndex === i;
+
+    if (isEditing) {
+      const editFieldsHtml = fields.map(f => `
+        <div class="set-field">
+          <label>${fieldLabels[f]}</label>
+          <input type="number" inputmode="decimal" step="0.1" min="0" data-field="${f}" value="${s[f]}">
+        </div>
+      `).join('');
+      return `<div class="set-row set-row-editing" data-edit-row>
+        <div class="set-fields">${editFieldsHtml}</div>
+        <div class="set-edit-actions">
+          <button class="icon-btn" data-save-edit data-entry-id="${entry.id}" data-set-index="${i}" aria-label="Сохранить">${ICONS.check}</button>
+          <button class="icon-btn" data-cancel-edit aria-label="Отмена">${ICONS.close}</button>
+        </div>
+      </div>`;
+    }
+
     const parts = fields.map(f => `${s[f]} ${labels[f]}`).join(' × ');
     return `<div class="set-row">
       <span>#${i + 1}: ${parts}</span>
-      <button class="icon-btn" data-remove-set data-entry-id="${entry.id}" data-set-index="${i}" aria-label="Удалить подход">${ICONS.close}</button>
+      <span class="set-row-actions">
+        <button class="icon-btn" data-edit-set data-entry-id="${entry.id}" data-set-index="${i}" aria-label="Изменить подход">${ICONS.edit}</button>
+        <button class="icon-btn" data-remove-set data-entry-id="${entry.id}" data-set-index="${i}" aria-label="Удалить подход">${ICONS.close}</button>
+      </span>
     </div>`;
   }).join('');
 
@@ -557,6 +606,63 @@ function renderEntryCard(entry) {
       ${setsHtml}
     </div>
   `;
+}
+
+function renderLastHintHtml(exercise) {
+  if (!exercise) return '';
+  const past = state.entries
+    .filter(e => e.exerciseId === exercise.id && e.date !== state.logDate)
+    .sort((a, b) => b.date.localeCompare(a.date))[0];
+  if (!past || !past.sets.length) return '';
+
+  const fields = FIELD_CONFIG[exercise.category];
+  const labels = { weight: 'кг', reps: 'повт', duration: 'мин', distance: 'км' };
+  const setsText = past.sets.map(s => fields.map(f => `${s[f]} ${labels[f]}`).join('×')).join(', ');
+  return `<div class="last-hint">Прошлый раз (${formatDateHuman(past.date)}): ${setsText}</div>`;
+}
+
+function attachEntryCardListeners(panel, rerender) {
+  panel.querySelectorAll('[data-remove-set]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      removeSet(btn.dataset.entryId, Number(btn.dataset.setIndex));
+    });
+  });
+
+  panel.querySelectorAll('[data-edit-set]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      state.editingSet = { entryId: btn.dataset.entryId, setIndex: Number(btn.dataset.setIndex) };
+      rerender();
+    });
+  });
+
+  panel.querySelectorAll('[data-cancel-edit]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      state.editingSet = null;
+      rerender();
+    });
+  });
+
+  panel.querySelectorAll('[data-save-edit]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const entry = state.entries.find(e => e.id === btn.dataset.entryId);
+      const setIndex = Number(btn.dataset.setIndex);
+      const ex = entry ? getExercise(entry.exerciseId) : null;
+      if (!entry || !ex) return;
+
+      const row = btn.closest('[data-edit-row]');
+      const newSet = {};
+      FIELD_CONFIG[ex.category].forEach(f => {
+        const input = row.querySelector(`[data-field="${f}"]`);
+        const val = input ? parseFloat(input.value) : NaN;
+        newSet[f] = isNaN(val) ? 0 : val;
+      });
+
+      entry.sets[setIndex] = newSet;
+      saveEntries();
+      state.editingSet = null;
+      rerender();
+    });
+  });
 }
 
 // ---------- Tab: Library (Упражнения) ----------
@@ -640,12 +746,7 @@ function renderHistory() {
     ${byDate[date].map(renderEntryCard).join('')}
   `).join('');
 
-  panel.querySelectorAll('[data-remove-set]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      removeSet(btn.dataset.entryId, Number(btn.dataset.setIndex));
-      renderHistory();
-    });
-  });
+  attachEntryCardListeners(panel, renderHistory);
 }
 
 // ---------- Tab: Analytics (Аналитика) ----------
