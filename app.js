@@ -1177,6 +1177,92 @@ function escapeHtml(str) {
 
 // ---------- Init ----------
 
+// ---------- Калькулятор блинов ----------
+
+const PLATE_SIZES = [25, 20, 15, 10, 5, 2.5, 1.25];
+const PLATE_COLORS = {
+  25: '#e5484d',
+  20: '#3b82f6',
+  15: '#eab308',
+  10: '#22c55e',
+  5: '#e4e4e7',
+  2.5: '#27272a',
+  1.25: '#9ca3af'
+};
+
+function calculatePlates(perSideWeight) {
+  let remaining = Math.max(0, perSideWeight);
+  const plates = [];
+  PLATE_SIZES.forEach(size => {
+    let count = 0;
+    while (remaining + 1e-9 >= size) {
+      remaining -= size;
+      count++;
+    }
+    if (count > 0) plates.push({ size, count });
+  });
+  return { plates, remainder: Math.round(remaining * 100) / 100 };
+}
+
+function renderPlateResult() {
+  const targetInput = document.getElementById('plate-target');
+  const barInput = document.getElementById('plate-bar');
+  const resultEl = document.getElementById('plate-result');
+  if (!targetInput || !barInput || !resultEl) return;
+
+  const target = parseFloat(targetInput.value);
+  const bar = parseFloat(barInput.value) || 0;
+
+  if (isNaN(target) || target <= bar) {
+    resultEl.innerHTML = '<p class="empty-hint">Введите вес больше веса грифа</p>';
+    return;
+  }
+
+  const perSide = (target - bar) / 2;
+  const { plates, remainder } = calculatePlates(perSide);
+
+  if (plates.length === 0) {
+    resultEl.innerHTML = '<p class="empty-hint">Блины не нужны — это вес одного грифа</p>';
+    return;
+  }
+
+  const chipsHtml = plates.map(p => `
+    <div class="plate-chip" style="border-color:${PLATE_COLORS[p.size] || '#9ca3af'}">
+      <span class="plate-dot" style="background:${PLATE_COLORS[p.size] || '#9ca3af'}"></span>
+      <span>${p.size} кг × ${p.count}</span>
+    </div>
+  `).join('');
+
+  resultEl.innerHTML = `
+    <div class="calc-hint">На каждую сторону (${perSide.toFixed(2)} кг):</div>
+    <div class="plate-chips">${chipsHtml}</div>
+    ${remainder > 0.01 ? `<div class="calc-hint">Остаток ${remainder.toFixed(2)} кг — нет подходящих блинов</div>` : ''}
+  `;
+}
+
+// ---------- Калькулятор 1ПМ ----------
+
+function renderOrmResult() {
+  const weightInput = document.getElementById('orm-weight');
+  const repsInput = document.getElementById('orm-reps');
+  const resultEl = document.getElementById('orm-result');
+  if (!weightInput || !repsInput || !resultEl) return;
+
+  const w = parseFloat(weightInput.value);
+  const r = parseFloat(repsInput.value);
+
+  if (isNaN(w) || w <= 0 || isNaN(r) || r <= 0) {
+    resultEl.innerHTML = '<p class="empty-hint">Введите вес и повторы</p>';
+    return;
+  }
+
+  const orm = estimateOneRepMax(w, r);
+  resultEl.innerHTML = `
+    <div class="calc-big-value">${orm.toFixed(1)} кг</div>
+    <div class="calc-hint">Расчётный одноповторный максимум (формула Эпли)</div>
+  `;
+}
+
 // ---------- Данные и инструменты (модальное окно) ----------
 
 function openToolsModal() {
@@ -1270,6 +1356,20 @@ function init() {
       if (file) importDataFromFile(file);
       e.target.value = '';
     });
+  }
+
+  const plateTarget = document.getElementById('plate-target');
+  const plateBar = document.getElementById('plate-bar');
+  if (plateTarget && plateBar) {
+    plateTarget.addEventListener('input', renderPlateResult);
+    plateBar.addEventListener('input', renderPlateResult);
+  }
+
+  const ormWeight = document.getElementById('orm-weight');
+  const ormReps = document.getElementById('orm-reps');
+  if (ormWeight && ormReps) {
+    ormWeight.addEventListener('input', renderOrmResult);
+    ormReps.addEventListener('input', renderOrmResult);
   }
 
   if ('serviceWorker' in navigator) {

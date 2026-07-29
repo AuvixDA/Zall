@@ -52,6 +52,32 @@
       <button class="btn-secondary" id="export-data-btn">Экспортировать в файл</button>
       <button class="btn-secondary" id="import-data-btn">Импортировать из файла</button>
       <input type="file" id="import-file-input" accept="application/json" hidden>
+
+      <div class="section-title">Калькулятор блинов</div>
+      <div class="calc-row">
+        <div class="set-field">
+          <label>Целевой вес, кг</label>
+          <input type="number" id="plate-target" inputmode="decimal" step="0.5" min="0" placeholder="100">
+        </div>
+        <div class="set-field">
+          <label>Вес грифа, кг</label>
+          <input type="number" id="plate-bar" inputmode="decimal" step="0.5" min="0" value="20">
+        </div>
+      </div>
+      <div id="plate-result" class="calc-result"></div>
+
+      <div class="section-title">Калькулятор 1ПМ</div>
+      <div class="calc-row">
+        <div class="set-field">
+          <label>Вес, кг</label>
+          <input type="number" id="orm-weight" inputmode="decimal" step="0.5" min="0" placeholder="80">
+        </div>
+        <div class="set-field">
+          <label>Повторы</label>
+          <input type="number" id="orm-reps" inputmode="numeric" step="1" min="1" placeholder="8">
+        </div>
+      </div>
+      <div id="orm-result" class="calc-result"></div>
     </div>
   </div>
 
