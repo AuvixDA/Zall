@@ -5,13 +5,19 @@
   --surface-2: rgba(255, 255, 255, 0.05);
   --text: #f2f3f5;
   --text-muted: #9096a8;
-  --accent: #ff7a3d;
-  --accent-2: #ff3d5e;
-  --steel: #4fa3ff;
+  /* Приглушённая тёплая палитра, подобранная под фото кирпичной стены зала */
+  --accent: #c9793f;
+  --accent-rgb: 201, 121, 63;
+  --accent-deep: #8a5427;
+  --accent-deep-rgb: 138, 84, 39;
+  --steel: #7a97ac;
+  --steel-rgb: 122, 151, 172;
   --border: rgba(255, 255, 255, 0.08);
   --border-strong: rgba(255, 255, 255, 0.14);
-  --up: #3ddc97;
-  --down: #ff5c6c;
+  --up: #7cae70;
+  --up-rgb: 124, 174, 112;
+  --down: #c15c50;
+  --down-rgb: 193, 92, 80;
   --radius: 16px;
 }
 
@@ -56,9 +62,9 @@ body {
   z-index: 0;
   pointer-events: none;
   background-image:
-    radial-gradient(650px 450px at 12% 8%, rgba(255, 122, 61, 0.22), transparent 60%),
-    radial-gradient(550px 420px at 92% 20%, rgba(79, 163, 255, 0.14), transparent 60%),
-    radial-gradient(750px 550px at 50% 105%, rgba(255, 61, 94, 0.14), transparent 65%);
+    radial-gradient(650px 450px at 12% 8%, rgba(var(--accent-rgb), 0.22), transparent 60%),
+    radial-gradient(550px 420px at 92% 20%, rgba(var(--steel-rgb), 0.14), transparent 60%),
+    radial-gradient(750px 550px at 50% 105%, rgba(var(--accent-deep-rgb), 0.14), transparent 65%);
   background-repeat: no-repeat;
   animation: driftGlow 22s ease-in-out infinite alternate;
 }
@@ -84,7 +90,7 @@ body {
   backdrop-filter: blur(14px) saturate(140%);
   -webkit-backdrop-filter: blur(14px) saturate(140%);
   border-bottom: 1px solid var(--border);
-  box-shadow: 0 1px 0 rgba(255, 122, 61, 0.15);
+  box-shadow: 0 1px 0 rgba(var(--accent-rgb), 0.15);
   z-index: 20;
 }
 
@@ -101,7 +107,7 @@ body {
   height: 12px;
   flex-shrink: 0;
   color: var(--accent);
-  filter: drop-shadow(0 0 6px rgba(255, 122, 61, 0.6));
+  filter: drop-shadow(0 0 6px rgba(var(--accent-rgb), 0.6));
 }
 
 /* ---------- Кастомные иконки (замена эмодзи) ---------- */
@@ -120,7 +126,7 @@ body {
   margin: 0;
   font-weight: 700;
   letter-spacing: 0.01em;
-  background: linear-gradient(90deg, #fff 0%, #ffd8bd 45%, var(--accent) 100%);
+  background: linear-gradient(90deg, #fff 0%, #ddb98f 45%, var(--accent) 100%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -314,7 +320,7 @@ select {
 
 input:focus, select:focus {
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(255, 122, 61, 0.15);
+  box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.15);
 }
 
 .set-fields {
@@ -418,7 +424,7 @@ input:focus, select:focus {
   width: 100%;
   margin-top: 14px;
   padding: 13px;
-  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 100%);
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-deep) 100%);
   color: #1a0d05;
   border: none;
   border-radius: 10px;
@@ -426,13 +432,13 @@ input:focus, select:focus {
   font-weight: 700;
   letter-spacing: 0.01em;
   cursor: pointer;
-  box-shadow: 0 8px 20px -8px rgba(255, 61, 94, 0.55);
+  box-shadow: 0 8px 20px -8px rgba(var(--accent-deep-rgb), 0.55);
   transition: transform 0.12s ease, box-shadow 0.12s ease;
 }
 
 .btn-primary:active {
   transform: scale(0.97);
-  box-shadow: 0 4px 12px -6px rgba(255, 61, 94, 0.5);
+  box-shadow: 0 4px 12px -6px rgba(var(--accent-deep-rgb), 0.5);
 }
 
 .btn-secondary {
@@ -501,7 +507,7 @@ input:focus, select:focus {
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
-  filter: drop-shadow(0 6px 28px rgba(255, 122, 61, 0.35));
+  filter: drop-shadow(0 6px 28px rgba(var(--accent-rgb), 0.35));
 }
 
 .timer-last {
@@ -530,9 +536,9 @@ input:focus, select:focus {
 .rest-banner {
   padding: 18px 16px 16px;
   text-align: center;
-  background: linear-gradient(160deg, rgba(255, 122, 61, 0.16) 0%, rgba(255, 61, 94, 0.05) 70%);
-  border-top: 1px solid rgba(255, 122, 61, 0.3);
-  border-bottom: 1px solid rgba(255, 122, 61, 0.3);
+  background: linear-gradient(160deg, rgba(var(--accent-rgb), 0.16) 0%, rgba(var(--accent-deep-rgb), 0.05) 70%);
+  border-top: 1px solid rgba(var(--accent-rgb), 0.3);
+  border-bottom: 1px solid rgba(var(--accent-rgb), 0.3);
   margin-bottom: 16px;
 }
 
@@ -547,8 +553,8 @@ input:focus, select:focus {
 }
 
 .rest-banner.rest-done {
-  background: linear-gradient(160deg, rgba(61, 220, 151, 0.2) 0%, rgba(61, 220, 151, 0.05) 70%);
-  border-color: rgba(61, 220, 151, 0.4);
+  background: linear-gradient(160deg, rgba(var(--up-rgb), 0.2) 0%, rgba(var(--up-rgb), 0.05) 70%);
+  border-color: rgba(var(--up-rgb), 0.4);
   animation: restDonePulse 1.2s ease-in-out infinite;
 }
 
@@ -558,8 +564,8 @@ input:focus, select:focus {
 }
 
 @keyframes restDonePulse {
-  0%, 100% { box-shadow: inset 0 0 0 0 rgba(61, 220, 151, 0.35); }
-  50% { box-shadow: inset 0 0 40px 0 rgba(61, 220, 151, 0.12); }
+  0%, 100% { box-shadow: inset 0 0 0 0 rgba(var(--up-rgb), 0.35); }
+  50% { box-shadow: inset 0 0 40px 0 rgba(var(--up-rgb), 0.12); }
 }
 
 .rest-banner-actions {
@@ -582,9 +588,9 @@ input:focus, select:focus {
   align-items: center;
   gap: 12px;
   padding: 14px 16px;
-  background: linear-gradient(135deg, rgba(61, 220, 151, 0.2), rgba(61, 220, 151, 0.04));
-  border-top: 1px solid rgba(61, 220, 151, 0.4);
-  border-bottom: 1px solid rgba(61, 220, 151, 0.4);
+  background: linear-gradient(135deg, rgba(var(--up-rgb), 0.2), rgba(var(--up-rgb), 0.04));
+  border-top: 1px solid rgba(var(--up-rgb), 0.4);
+  border-bottom: 1px solid rgba(var(--up-rgb), 0.4);
   margin-bottom: 16px;
   animation: prPulse 1.6s ease-in-out infinite;
 }
@@ -592,7 +598,7 @@ input:focus, select:focus {
 .pr-flash-icon {
   display: flex;
   color: var(--up);
-  filter: drop-shadow(0 0 8px rgba(61, 220, 151, 0.6));
+  filter: drop-shadow(0 0 8px rgba(var(--up-rgb), 0.6));
 }
 
 .pr-flash-icon .icon { width: 28px; height: 28px; }
@@ -602,8 +608,8 @@ input:focus, select:focus {
 .pr-flash-sub { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
 
 @keyframes prPulse {
-  0%, 100% { box-shadow: inset 0 0 0 0 rgba(61, 220, 151, 0.3); }
-  50% { box-shadow: inset 0 0 30px 0 rgba(61, 220, 151, 0.14); }
+  0%, 100% { box-shadow: inset 0 0 0 0 rgba(var(--up-rgb), 0.3); }
+  50% { box-shadow: inset 0 0 30px 0 rgba(var(--up-rgb), 0.14); }
 }
 
 .record-row {
@@ -717,7 +723,7 @@ input:focus, select:focus {
 .streak-cell.trained {
   background: var(--accent);
   border-color: var(--accent);
-  box-shadow: 0 0 5px rgba(255, 122, 61, 0.5);
+  box-shadow: 0 0 5px rgba(var(--accent-rgb), 0.5);
 }
 
 .streak-cell.future {
@@ -896,11 +902,11 @@ input:focus, select:focus {
 }
 
 .chip-active {
-  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 100%);
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-deep) 100%);
   color: #1a0d05;
   border-color: transparent;
   font-weight: 700;
-  box-shadow: 0 6px 16px -8px rgba(255, 61, 94, 0.6);
+  box-shadow: 0 6px 16px -8px rgba(var(--accent-deep-rgb), 0.6);
 }
 
 .summary-grid {
@@ -929,8 +935,8 @@ input:focus, select:focus {
 }
 .summary-label { font-size: 11px; color: var(--text-muted); margin: 8px 0 2px; text-transform: uppercase; letter-spacing: 0.04em; }
 .summary-value { font-size: 28px; font-weight: 800; font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
-.summary-value.up { color: var(--up); text-shadow: 0 0 20px rgba(61, 220, 151, 0.4); }
-.summary-value.down { color: var(--down); text-shadow: 0 0 20px rgba(255, 92, 108, 0.4); }
+.summary-value.up { color: var(--up); text-shadow: 0 0 20px rgba(var(--up-rgb), 0.4); }
+.summary-value.down { color: var(--down); text-shadow: 0 0 20px rgba(var(--down-rgb), 0.4); }
 .summary-value.muted { color: var(--text-muted); font-size: 13px; font-weight: 400; }
 
 .exercise-chart-card { padding: 16px; border-top-width: 3px; border-top-style: solid; }
@@ -963,8 +969,8 @@ input:focus, select:focus {
   border-radius: 999px;
 }
 .pct-badge .icon { width: 11px; height: 11px; }
-.pct-badge.up { color: var(--up); background: rgba(61, 220, 151, 0.14); box-shadow: 0 0 12px -2px rgba(61, 220, 151, 0.3); }
-.pct-badge.down { color: var(--down); background: rgba(255, 92, 108, 0.14); box-shadow: 0 0 12px -2px rgba(255, 92, 108, 0.3); }
+.pct-badge.up { color: var(--up); background: rgba(var(--up-rgb), 0.14); box-shadow: 0 0 12px -2px rgba(var(--up-rgb), 0.3); }
+.pct-badge.down { color: var(--down); background: rgba(var(--down-rgb), 0.14); box-shadow: 0 0 12px -2px rgba(var(--down-rgb), 0.3); }
 .pct-badge.muted { color: var(--text-muted); background: var(--surface-2); }
 
 /* ---------- Нижняя навигация (плавающая стеклянная панель) ---------- */
@@ -1021,11 +1027,11 @@ input:focus, select:focus {
 
 .nav-btn.active {
   color: var(--accent);
-  background: rgba(255, 122, 61, 0.1);
+  background: rgba(var(--accent-rgb), 0.1);
 }
 
 .nav-btn.active .nav-icon {
-  filter: drop-shadow(0 0 8px rgba(255, 122, 61, 0.7));
+  filter: drop-shadow(0 0 8px rgba(var(--accent-rgb), 0.7));
 }
 
 @media (min-width: 600px) {

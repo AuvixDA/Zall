@@ -33,9 +33,9 @@ const ICONS = {
 };
 
 const CATEGORY_META = {
-  strength: { label: 'Сила', color: '#ff8a3d', icon: ICONS.strength, unit: '1ПМ, кг' },
-  endurance: { label: 'Выносливость', color: '#3ddc97', icon: ICONS.endurance, unit: 'мин/сессия' },
-  speed: { label: 'Скорость', color: '#4fa3ff', icon: ICONS.speed, unit: 'км/ч' }
+  strength: { label: 'Сила', color: '#c9793f', icon: ICONS.strength, unit: '1ПМ, кг' },
+  endurance: { label: 'Выносливость', color: '#7cae70', icon: ICONS.endurance, unit: 'мин/сессия' },
+  speed: { label: 'Скорость', color: '#7a97ac', icon: ICONS.speed, unit: 'км/ч' }
 };
 
 const FIELD_CONFIG = {
