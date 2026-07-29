@@ -570,6 +570,22 @@ input:focus, select:focus {
   color: var(--accent);
 }
 
+.day-summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  font-size: 13px;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.day-summary .icon {
+  width: 15px;
+  height: 15px;
+  color: var(--accent);
+}
+
 .section-title {
   font-size: 13px;
   color: var(--text-muted);

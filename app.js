@@ -227,15 +227,33 @@ function startSession() {
   saveSession();
 }
 
+function computeSessionSummary(date) {
+  const dayEntries = state.entries.filter(e => e.date === date);
+  let totalSets = 0;
+  let totalVolume = 0;
+  dayEntries.forEach(entry => {
+    totalSets += entry.sets.length;
+    entry.sets.forEach(s => {
+      if (s.weight && s.reps) totalVolume += s.weight * s.reps;
+    });
+  });
+  return { totalSets, totalVolume, exercisesCount: dayEntries.length };
+}
+
 function endSession() {
   if (!state.session) return;
   const endedAt = Date.now();
   const durationSec = Math.round((endedAt - state.session.startedAt) / 1000);
+  const date = toISO(new Date(state.session.startedAt));
+  const summary = computeSessionSummary(date);
   state.sessions.push({
-    date: toISO(new Date(state.session.startedAt)),
+    date,
     startedAt: state.session.startedAt,
     endedAt,
-    durationSec
+    durationSec,
+    totalSets: summary.totalSets,
+    totalVolume: summary.totalVolume,
+    exercisesCount: summary.exercisesCount
   });
   saveSessions();
   state.session = null;
@@ -548,9 +566,16 @@ function renderTimerCard() {
         <span class="timer-card-title">${ICONS.timer}<span>Тренировка</span></span>
       </div>
       <button class="btn-primary" id="start-session-btn">Начать тренировку</button>
-      ${last ? `<div class="timer-last">Последняя: ${formatDuration(last.durationSec)} · ${formatDateHuman(last.date)}</div>` : ''}
+      ${last ? `<div class="timer-last">Последняя: ${formatSessionSummary(last)}</div>` : ''}
     </div>
   `;
+}
+
+function formatSessionSummary(session) {
+  const parts = [formatDuration(session.durationSec), `${session.totalSets || 0} подх.`];
+  if (session.totalVolume > 0) parts.push(`${Math.round(session.totalVolume)} кг`);
+  parts.push(formatDateHuman(session.date));
+  return parts.join(' · ');
 }
 
 function renderRestWidget() {
@@ -869,12 +894,25 @@ function renderHistory() {
     return;
   }
 
-  panel.innerHTML = dates.map(date => `
-    <div class="section-title">${formatDateHuman(date)}</div>
-    ${byDate[date].map(renderEntryCard).join('')}
-  `).join('');
+  panel.innerHTML = dates.map(date => {
+    const daySessions = state.sessions.filter(s => s.date === date);
+    return `
+      <div class="section-title">${formatDateHuman(date)}</div>
+      ${daySessions.length ? renderDaySummaryHtml(daySessions) : ''}
+      ${byDate[date].map(renderEntryCard).join('')}
+    `;
+  }).join('');
 
   attachEntryCardListeners(panel, renderHistory);
+}
+
+function renderDaySummaryHtml(sessions) {
+  const totalDuration = sessions.reduce((sum, s) => sum + s.durationSec, 0);
+  const totalSets = sessions.reduce((sum, s) => sum + (s.totalSets || 0), 0);
+  const totalVolume = sessions.reduce((sum, s) => sum + (s.totalVolume || 0), 0);
+  const parts = [formatDuration(totalDuration), `${totalSets} подх.`];
+  if (totalVolume > 0) parts.push(`${Math.round(totalVolume)} кг`);
+  return `<div class="card day-summary">${ICONS.timer}<span>${parts.join(' · ')}</span></div>`;
 }
 
 // ---------- Tab: Analytics (Аналитика) ----------
