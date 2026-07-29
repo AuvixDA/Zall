@@ -6,10 +6,21 @@ const STORAGE_KEYS = {
   seeded: 'workout:seeded'
 };
 
+// Кастомные иконки (вместо эмодзи) — простые линейные SVG, наследуют цвет через currentColor.
+const ICONS = {
+  strength: '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3.5"/></svg>',
+  endurance: '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20.2s-7.2-4.4-9.5-9A5.4 5.4 0 0 1 12 6a5.4 5.4 0 0 1 9.5 5.2c-2.3 4.6-9.5 9-9.5 9z"/><path d="M4 12h3l1.6-3.2L10.5 14l1.6-3.4H16" stroke-width="1.6"/></svg>',
+  speed: '<svg class="icon" viewBox="0 0 24 24" fill="currentColor"><path d="M13 2 4 14h6l-1 8 9-12h-6z"/></svg>',
+  trash: '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16"/><path d="M9 7V4h6v3"/><path d="M6 7l1 13a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-13"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>',
+  close: '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg>',
+  up: '<svg class="icon" viewBox="0 0 24 24" fill="currentColor"><path d="M12 5l7 10H5z"/></svg>',
+  down: '<svg class="icon" viewBox="0 0 24 24" fill="currentColor"><path d="M12 19 5 9h14z"/></svg>'
+};
+
 const CATEGORY_META = {
-  strength: { label: 'Сила', color: '#ff8a3d', icon: '💪', unit: '1ПМ, кг' },
-  endurance: { label: 'Выносливость', color: '#3ddc97', icon: '🫁', unit: 'мин/сессия' },
-  speed: { label: 'Скорость', color: '#4fa3ff', icon: '⚡', unit: 'км/ч' }
+  strength: { label: 'Сила', color: '#ff8a3d', icon: ICONS.strength, unit: '1ПМ, кг' },
+  endurance: { label: 'Выносливость', color: '#3ddc97', icon: ICONS.endurance, unit: 'мин/сессия' },
+  speed: { label: 'Скорость', color: '#4fa3ff', icon: ICONS.speed, unit: 'км/ч' }
 };
 
 const FIELD_CONFIG = {
@@ -276,14 +287,14 @@ function renderEntryCard(entry) {
     const parts = fields.map(f => `${s[f]} ${labels[f]}`).join(' × ');
     return `<div class="set-row">
       <span>#${i + 1}: ${parts}</span>
-      <button class="icon-btn" data-remove-set data-entry-id="${entry.id}" data-set-index="${i}" aria-label="Удалить подход">✕</button>
+      <button class="icon-btn" data-remove-set data-entry-id="${entry.id}" data-set-index="${i}" aria-label="Удалить подход">${ICONS.close}</button>
     </div>`;
   }).join('');
 
   return `
     <div class="card entry-card">
       <div class="entry-head">
-        <span class="badge" style="background:${meta.color}22;color:${meta.color}">${meta.icon} ${meta.label}</span>
+        <span class="badge" style="background:${meta.color}22;color:${meta.color}">${meta.icon}<span>${meta.label}</span></span>
         <strong>${escapeHtml(ex.name)}</strong>
       </div>
       ${setsHtml}
@@ -305,11 +316,11 @@ function renderLibrary() {
     const items = grouped[cat] || [];
     if (items.length === 0) return '';
     return `
-      <div class="section-title">${CATEGORY_META[cat].icon} ${CATEGORY_META[cat].label}</div>
+      <div class="section-title">${CATEGORY_META[cat].icon}<span>${CATEGORY_META[cat].label}</span></div>
       ${items.map(e => `
         <div class="card row-card">
           <span>${escapeHtml(e.name)}</span>
-          <button class="icon-btn" data-delete-ex="${e.id}" aria-label="Удалить">🗑</button>
+          <button class="icon-btn" data-delete-ex="${e.id}" aria-label="Удалить">${ICONS.trash}</button>
         </div>
       `).join('')}
     `;
@@ -321,7 +332,7 @@ function renderLibrary() {
       <input type="text" id="new-ex-name" placeholder="Например: Жим лёжа">
       <label class="field-label">Тип (для аналитики)</label>
       <select id="new-ex-category">
-        ${Object.entries(CATEGORY_META).map(([k, v]) => `<option value="${k}">${v.icon} ${v.label}</option>`).join('')}
+        ${Object.entries(CATEGORY_META).map(([k, v]) => `<option value="${k}">${v.label}</option>`).join('')}
       </select>
       <button class="btn-primary" id="add-exercise">+ Добавить</button>
     </div>
@@ -447,7 +458,7 @@ function renderSummaryCards(startDate, endDate) {
     if (trends.length === 0) {
       return `
         <div class="card summary-card">
-          <div class="summary-icon">${meta.icon}</div>
+          <div class="summary-icon" style="color:${meta.color}">${meta.icon}</div>
           <div class="summary-label">${meta.label}</div>
           <div class="summary-value muted">нет данных</div>
         </div>
@@ -459,7 +470,7 @@ function renderSummaryCards(startDate, endDate) {
     const colorClass = avgPct >= 0 ? 'up' : 'down';
     return `
       <div class="card summary-card">
-        <div class="summary-icon">${meta.icon}</div>
+        <div class="summary-icon" style="color:${meta.color}">${meta.icon}</div>
         <div class="summary-label">${meta.label}</div>
         <div class="summary-value ${colorClass}">${sign}${avgPct.toFixed(1)}%</div>
       </div>
@@ -477,7 +488,7 @@ function renderExerciseCharts(startDate, endDate) {
       return `
         <div class="card exercise-chart-card">
           <div class="entry-head">
-            <span class="badge" style="background:${meta.color}22;color:${meta.color}">${meta.icon} ${meta.label}</span>
+            <span class="badge" style="background:${meta.color}22;color:${meta.color}">${meta.icon}<span>${meta.label}</span></span>
             <strong>${escapeHtml(ex.name)}</strong>
           </div>
           <p class="empty-hint">Нет записей за этот период</p>
@@ -487,13 +498,13 @@ function renderExerciseCharts(startDate, endDate) {
 
     const svg = renderLineChartSVG(trend.points, meta.color);
     const pctBadge = trend.hasEnough
-      ? `<span class="pct-badge ${trend.pctChange >= 0 ? 'up' : 'down'}">${trend.pctChange >= 0 ? '▲' : '▼'} ${Math.abs(trend.pctChange).toFixed(1)}%</span>`
+      ? `<span class="pct-badge ${trend.pctChange >= 0 ? 'up' : 'down'}">${trend.pctChange >= 0 ? ICONS.up : ICONS.down}<span>${Math.abs(trend.pctChange).toFixed(1)}%</span></span>`
       : `<span class="pct-badge muted">мало данных</span>`;
 
     return `
       <div class="card exercise-chart-card">
         <div class="entry-head">
-          <span class="badge" style="background:${meta.color}22;color:${meta.color}">${meta.icon} ${meta.label}</span>
+          <span class="badge" style="background:${meta.color}22;color:${meta.color}">${meta.icon}<span>${meta.label}</span></span>
           <strong>${escapeHtml(ex.name)}</strong>
           ${pctBadge}
         </div>
