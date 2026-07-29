@@ -3,8 +3,13 @@
 const STORAGE_KEYS = {
   exercises: 'workout:exercises',
   entries: 'workout:entries',
-  seeded: 'workout:seeded'
+  seeded: 'workout:seeded',
+  restTimer: 'workout:restTimer',
+  session: 'workout:session',
+  sessions: 'workout:sessions'
 };
+
+const DEFAULT_REST_SECONDS = 90;
 
 // Кастомные иконки (вместо эмодзи) — простые линейные SVG, наследуют цвет через currentColor.
 const ICONS = {
@@ -14,7 +19,9 @@ const ICONS = {
   trash: '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16"/><path d="M9 7V4h6v3"/><path d="M6 7l1 13a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-13"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>',
   close: '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg>',
   up: '<svg class="icon" viewBox="0 0 24 24" fill="currentColor"><path d="M12 5l7 10H5z"/></svg>',
-  down: '<svg class="icon" viewBox="0 0 24 24" fill="currentColor"><path d="M12 19 5 9h14z"/></svg>'
+  down: '<svg class="icon" viewBox="0 0 24 24" fill="currentColor"><path d="M12 19 5 9h14z"/></svg>',
+  timer: '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="8"/><line x1="12" y1="13" x2="12" y2="9"/><line x1="12" y1="13" x2="15" y2="14.5"/><line x1="9" y1="2" x2="15" y2="2"/><line x1="12" y1="2" x2="12" y2="4.5"/></svg>',
+  hourglass: '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12"/><path d="M6 21h12"/><path d="M6 3c0 5 5 6 6 9-1 3-6 4-6 9"/><path d="M18 3c0 5-5 6-6 9 1 3 6 4 6 9"/></svg>'
 };
 
 const CATEGORY_META = {
@@ -48,8 +55,13 @@ let state = {
   tab: 'log',
   logDate: todayISO(),
   analyticsPeriod: 30,
-  analyticsCategory: 'all'
+  analyticsCategory: 'all',
+  restTimer: null,
+  session: null,
+  sessions: []
 };
+
+let audioCtx = null;
 
 function uid() {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
@@ -77,6 +89,22 @@ function daysAgoISO(n) {
   return toISO(d);
 }
 
+function formatSeconds(totalSec) {
+  const s = Math.max(0, Math.round(totalSec));
+  const m = Math.floor(s / 60);
+  const sec = s % 60;
+  return `${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
+}
+
+function formatDuration(totalSec) {
+  const s = Math.max(0, Math.round(totalSec));
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const sec = s % 60;
+  if (h > 0) return `${h}:${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
+  return `${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
+}
+
 // ---------- Persistence ----------
 
 function loadState() {
@@ -92,6 +120,21 @@ function loadState() {
     localStorage.setItem(STORAGE_KEYS.seeded, '1');
     saveExercises();
   }
+
+  try {
+    state.restTimer = JSON.parse(localStorage.getItem(STORAGE_KEYS.restTimer));
+  } catch { state.restTimer = null; }
+  if (state.restTimer && Date.now() - state.restTimer.endAt > 5 * 60 * 1000) {
+    state.restTimer = null; // таймер давно истёк (например, приложение было закрыто) — не показываем устаревшее состояние
+  }
+
+  try {
+    state.session = JSON.parse(localStorage.getItem(STORAGE_KEYS.session));
+  } catch { state.session = null; }
+
+  try {
+    state.sessions = JSON.parse(localStorage.getItem(STORAGE_KEYS.sessions)) || [];
+  } catch { state.sessions = []; }
 }
 
 function saveExercises() {
@@ -102,8 +145,141 @@ function saveEntries() {
   localStorage.setItem(STORAGE_KEYS.entries, JSON.stringify(state.entries));
 }
 
+function saveRestTimer() {
+  localStorage.setItem(STORAGE_KEYS.restTimer, JSON.stringify(state.restTimer));
+}
+
+function saveSession() {
+  localStorage.setItem(STORAGE_KEYS.session, JSON.stringify(state.session));
+}
+
+function saveSessions() {
+  localStorage.setItem(STORAGE_KEYS.sessions, JSON.stringify(state.sessions));
+}
+
 function getExercise(id) {
   return state.exercises.find(e => e.id === id);
+}
+
+// ---------- Таймер отдыха ----------
+
+function startRestTimer(durationSec = DEFAULT_REST_SECONDS) {
+  state.restTimer = { endAt: Date.now() + durationSec * 1000, notified: false };
+  saveRestTimer();
+}
+
+function adjustRestTimer(deltaSec) {
+  if (!state.restTimer) return;
+  const now = Date.now();
+  state.restTimer.endAt = Math.max(now, state.restTimer.endAt + deltaSec * 1000);
+  if (state.restTimer.endAt > now) state.restTimer.notified = false;
+  saveRestTimer();
+  updateRestTimerUI();
+}
+
+function skipRestTimer() {
+  state.restTimer = null;
+  saveRestTimer();
+  updateRestTimerUI();
+}
+
+function updateRestTimerUI() {
+  const widget = document.getElementById('rest-timer-widget');
+  if (!widget) return;
+  if (!state.restTimer) {
+    widget.hidden = true;
+    return;
+  }
+
+  const remaining = Math.max(0, Math.ceil((state.restTimer.endAt - Date.now()) / 1000));
+  const done = remaining <= 0;
+  widget.hidden = false;
+  widget.classList.toggle('rest-done', done);
+
+  const timeEl = widget.querySelector('#rest-time');
+  if (timeEl) timeEl.textContent = formatSeconds(remaining);
+  const titleEl = widget.querySelector('.timer-card-title span');
+  if (titleEl) titleEl.textContent = done ? 'Отдых окончен' : 'Отдых';
+
+  if (done && !state.restTimer.notified) {
+    state.restTimer.notified = true;
+    saveRestTimer();
+    playBeep();
+    vibrate();
+  }
+}
+
+// ---------- Таймер тренировки ----------
+
+function startSession() {
+  state.session = { startedAt: Date.now() };
+  saveSession();
+}
+
+function endSession() {
+  if (!state.session) return;
+  const endedAt = Date.now();
+  const durationSec = Math.round((endedAt - state.session.startedAt) / 1000);
+  state.sessions.push({
+    date: toISO(new Date(state.session.startedAt)),
+    startedAt: state.session.startedAt,
+    endedAt,
+    durationSec
+  });
+  saveSessions();
+  state.session = null;
+  saveSession();
+}
+
+function updateSessionTimerUI() {
+  const el = document.getElementById('session-elapsed');
+  if (!el || !state.session) return;
+  const elapsedSec = Math.floor((Date.now() - state.session.startedAt) / 1000);
+  el.textContent = formatDuration(elapsedSec);
+}
+
+function tickTimers() {
+  updateRestTimerUI();
+  updateSessionTimerUI();
+}
+
+// ---------- Звук и вибрация по окончании отдыха ----------
+
+function ensureAudioUnlocked() {
+  try {
+    if (!audioCtx) {
+      const Ctx = window.AudioContext || window.webkitAudioContext;
+      if (Ctx) audioCtx = new Ctx();
+    }
+    if (audioCtx && audioCtx.state === 'suspended') {
+      audioCtx.resume().catch(() => {});
+    }
+  } catch { /* звук недоступен — не критично */ }
+}
+
+function playBeep() {
+  if (!audioCtx) return;
+  try {
+    const now = audioCtx.currentTime;
+    [[880, now], [1046.5, now + 0.45]].forEach(([freq, at]) => {
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.frequency.value = freq;
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      gain.gain.setValueAtTime(0.0001, at);
+      gain.gain.exponentialRampToValueAtTime(0.3, at + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.0001, at + 0.4);
+      osc.start(at);
+      osc.stop(at + 0.4);
+    });
+  } catch { /* звук недоступен — не критично */ }
+}
+
+function vibrate() {
+  try {
+    if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+  } catch { /* вибрация недоступна — не критично */ }
 }
 
 // ---------- Metrics ----------
@@ -177,6 +353,9 @@ function renderLog() {
   const dayEntries = state.entries.filter(e => e.date === state.logDate);
 
   panel.innerHTML = `
+    ${renderTimerCard()}
+    ${renderRestWidget()}
+
     <div class="card">
       <label class="field-label">Дата тренировки</label>
       <input type="date" id="log-date" value="${state.logDate}" max="${todayISO()}">
@@ -215,6 +394,7 @@ function renderLog() {
       if (!ex) return;
       const set = readSetFields(ex.category);
       if (!set) return;
+      ensureAudioUnlocked();
       addSetToLog(ex.id, state.logDate, set);
     });
   }
@@ -224,6 +404,77 @@ function renderLog() {
       removeSet(btn.dataset.entryId, Number(btn.dataset.setIndex));
     });
   });
+
+  const startBtn = document.getElementById('start-session-btn');
+  if (startBtn) {
+    startBtn.addEventListener('click', () => {
+      ensureAudioUnlocked();
+      startSession();
+      render();
+    });
+  }
+
+  const endBtn = document.getElementById('end-session-btn');
+  if (endBtn) {
+    endBtn.addEventListener('click', () => {
+      endSession();
+      render();
+    });
+  }
+
+  const restMinusBtn = document.getElementById('rest-minus-btn');
+  if (restMinusBtn) restMinusBtn.addEventListener('click', () => adjustRestTimer(-15));
+
+  const restPlusBtn = document.getElementById('rest-plus-btn');
+  if (restPlusBtn) restPlusBtn.addEventListener('click', () => adjustRestTimer(15));
+
+  const restSkipBtn = document.getElementById('rest-skip-btn');
+  if (restSkipBtn) restSkipBtn.addEventListener('click', skipRestTimer);
+}
+
+function renderTimerCard() {
+  if (state.session) {
+    const elapsed = Math.floor((Date.now() - state.session.startedAt) / 1000);
+    return `
+      <div class="card timer-card">
+        <div class="timer-card-head">
+          <span class="timer-card-title">${ICONS.timer}<span>Тренировка идёт</span></span>
+          <span id="session-elapsed" class="timer-value">${formatDuration(elapsed)}</span>
+        </div>
+        <button class="btn-secondary" id="end-session-btn">Завершить тренировку</button>
+      </div>
+    `;
+  }
+
+  const last = state.sessions.length ? state.sessions[state.sessions.length - 1] : null;
+  return `
+    <div class="card timer-card">
+      <div class="timer-card-head">
+        <span class="timer-card-title">${ICONS.timer}<span>Тренировка</span></span>
+      </div>
+      <button class="btn-primary" id="start-session-btn">Начать тренировку</button>
+      ${last ? `<div class="timer-last">Последняя: ${formatDuration(last.durationSec)} · ${formatDateHuman(last.date)}</div>` : ''}
+    </div>
+  `;
+}
+
+function renderRestWidget() {
+  const active = !!state.restTimer;
+  const remaining = active ? Math.max(0, Math.ceil((state.restTimer.endAt - Date.now()) / 1000)) : 0;
+  const done = active && remaining <= 0;
+  return `
+    <div class="card timer-card rest-card ${done ? 'rest-done' : ''}" id="rest-timer-widget" ${active ? '' : 'hidden'}>
+      <div class="timer-card-head">
+        <span class="timer-card-title">${ICONS.hourglass}<span>${done ? 'Отдых окончен' : 'Отдых'}</span></span>
+        <span id="rest-time" class="timer-value">${formatSeconds(remaining)}</span>
+      </div>
+      <div class="timer-actions">
+        <button class="chip" id="rest-minus-btn">-15с</button>
+        <button class="chip" id="rest-plus-btn">+15с</button>
+        <button class="btn-secondary" id="rest-skip-btn">Пропустить</button>
+      </div>
+    </div>
+  `;
 }
 
 function setFieldsHtml(category) {
@@ -262,6 +513,12 @@ function addSetToLog(exerciseId, date, set) {
   }
   entry.sets.push(set);
   saveEntries();
+
+  if (date === todayISO()) {
+    if (!state.session) startSession();
+    startRestTimer();
+  }
+
   render();
 }
 
@@ -567,6 +824,7 @@ function init() {
     btn.addEventListener('click', () => switchTab(btn.dataset.tab));
   });
   render();
+  setInterval(tickTimers, 1000);
 
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('sw.js').catch(() => {});
