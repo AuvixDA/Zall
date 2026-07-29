@@ -6,7 +6,9 @@ const STORAGE_KEYS = {
   seeded: 'workout:seeded',
   restTimer: 'workout:restTimer',
   session: 'workout:session',
-  sessions: 'workout:sessions'
+  sessions: 'workout:sessions',
+  plans: 'workout:plans',
+  activePlan: 'workout:activePlan'
 };
 
 const DEFAULT_REST_SECONDS = 90;
@@ -29,7 +31,9 @@ const ICONS = {
   starFilled: '<svg class="icon" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 3.2l2.7 5.6 6.1.7-4.5 4.2 1.2 6.1L12 16.9l-5.5 2.9 1.2-6.1-4.5-4.2 6.1-.7z"/></svg>',
   search: '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.2" y2="16.2"/></svg>',
   trophy: '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8"/><path d="M12 17v4"/><path d="M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M7 5H4a3 3 0 0 0 3 4"/><path d="M17 5h3a3 3 0 0 1-3 4"/></svg>',
-  calendar: '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><line x1="3" y1="9.5" x2="21" y2="9.5"/><line x1="8" y1="3" x2="8" y2="7"/><line x1="16" y1="3" x2="16" y2="7"/></svg>'
+  calendar: '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><line x1="3" y1="9.5" x2="21" y2="9.5"/><line x1="8" y1="3" x2="8" y2="7"/><line x1="16" y1="3" x2="16" y2="7"/></svg>',
+  plan: '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6h11"/><path d="M9 12h11"/><path d="M9 18h11"/><circle cx="4.5" cy="6" r="1.3" fill="currentColor" stroke="none"/><circle cx="4.5" cy="12" r="1.3" fill="currentColor" stroke="none"/><circle cx="4.5" cy="18" r="1.3" fill="currentColor" stroke="none"/></svg>',
+  play: '<svg class="icon" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>'
 };
 
 const CATEGORY_META = {
@@ -70,7 +74,13 @@ let state = {
   logExerciseId: null,
   editingSet: null,
   librarySearch: '',
-  lastPR: null
+  lastPR: null,
+  plans: [],
+  activePlanId: null,
+  expandedPlanExerciseId: null,
+  planBuilder: { editingPlanId: null, name: '', exerciseIds: [] },
+  showPlanPicker: false,
+  showPlanExtra: false
 };
 
 let audioCtx = null;
@@ -147,6 +157,15 @@ function loadState() {
   try {
     state.sessions = JSON.parse(localStorage.getItem(STORAGE_KEYS.sessions)) || [];
   } catch { state.sessions = []; }
+
+  try {
+    state.plans = JSON.parse(localStorage.getItem(STORAGE_KEYS.plans)) || [];
+  } catch { state.plans = []; }
+
+  state.activePlanId = localStorage.getItem(STORAGE_KEYS.activePlan) || null;
+  if (state.activePlanId && !state.plans.find(p => p.id === state.activePlanId)) {
+    state.activePlanId = null; // план мог быть удалён — не оставляем висячую ссылку
+  }
 }
 
 function saveExercises() {
@@ -167,6 +186,22 @@ function saveSession() {
 
 function saveSessions() {
   localStorage.setItem(STORAGE_KEYS.sessions, JSON.stringify(state.sessions));
+}
+
+function savePlans() {
+  localStorage.setItem(STORAGE_KEYS.plans, JSON.stringify(state.plans));
+}
+
+function saveActivePlanId() {
+  if (state.activePlanId) {
+    localStorage.setItem(STORAGE_KEYS.activePlan, state.activePlanId);
+  } else {
+    localStorage.removeItem(STORAGE_KEYS.activePlan);
+  }
+}
+
+function getPlan(id) {
+  return state.plans.find(p => p.id === id);
 }
 
 function getExercise(id) {
@@ -259,6 +294,8 @@ function endSession() {
   saveSessions();
   state.session = null;
   saveSession();
+
+  if (state.activePlanId) exitPlan();
 }
 
 function updateSessionTimerUI() {
@@ -419,27 +456,73 @@ function getBestMetric(exerciseId) {
   return best;
 }
 
+// ---------- Планы тренировок ----------
+
+function createOrUpdatePlan(planData) {
+  if (planData.editingPlanId) {
+    const plan = getPlan(planData.editingPlanId);
+    if (!plan) return;
+    plan.name = planData.name;
+    plan.exerciseIds = planData.exerciseIds;
+  } else {
+    state.plans.push({ id: uid(), name: planData.name, exerciseIds: planData.exerciseIds });
+  }
+  savePlans();
+}
+
+function deletePlanWithUndo(id) {
+  const plan = getPlan(id);
+  if (!plan) return;
+  const index = state.plans.indexOf(plan);
+
+  state.plans = state.plans.filter(p => p.id !== id);
+  if (state.activePlanId === id) {
+    state.activePlanId = null;
+    saveActivePlanId();
+  }
+  savePlans();
+  renderLibraryList();
+
+  showUndoToast(`План «${plan.name}» удалён`, () => {
+    state.plans.splice(index, 0, plan);
+    savePlans();
+    if (state.tab === 'library') renderLibraryList();
+    if (state.tab === 'log') renderLog();
+  });
+}
+
+function startPlan(planId) {
+  const plan = getPlan(planId);
+  if (!plan) return;
+  state.activePlanId = planId;
+  state.expandedPlanExerciseId = plan.exerciseIds[0] || null;
+  state.showPlanPicker = false;
+  saveActivePlanId();
+  if (!state.session) startSession();
+}
+
+function exitPlan() {
+  state.activePlanId = null;
+  state.expandedPlanExerciseId = null;
+  state.showPlanExtra = false;
+  saveActivePlanId();
+}
+
+function isPlanExerciseDone(exerciseId, date) {
+  const entry = state.entries.find(e => e.exerciseId === exerciseId && e.date === date);
+  return !!(entry && entry.sets.length > 0);
+}
+
 // ---------- Tab: Log (Сегодня) ----------
 
 function renderLog() {
   const panel = document.getElementById('panel-log');
 
-  if (!state.logExerciseId || !getExercise(state.logExerciseId)) {
-    state.logExerciseId = state.exercises.length ? state.exercises[0].id : null;
+  let activePlan = state.activePlanId ? getPlan(state.activePlanId) : null;
+  if (state.activePlanId && !activePlan) {
+    state.activePlanId = null; // план удалили, пока шла тренировка
+    activePlan = null;
   }
-
-  const sortedExercises = [...state.exercises].sort((a, b) => (b.favorite ? 1 : 0) - (a.favorite ? 1 : 0));
-  const exOptions = sortedExercises
-    .map(e => `<option value="${e.id}" ${e.id === state.logExerciseId ? 'selected' : ''}>${e.favorite ? '★ ' : ''}${escapeHtml(e.name)} (${CATEGORY_META[e.category].label})</option>`)
-    .join('');
-
-  const favorites = state.exercises.filter(e => e.favorite);
-
-  const dayEntries = state.entries.filter(e => e.date === state.logDate);
-  const selectedEx = getExercise(state.logExerciseId);
-  const todayEntryForSelected = selectedEx
-    ? state.entries.find(e => e.exerciseId === selectedEx.id && e.date === state.logDate)
-    : null;
 
   panel.innerHTML = `
     ${renderTimerCard()}
@@ -451,6 +534,42 @@ function renderLog() {
       <input type="date" id="log-date" value="${state.logDate}" max="${todayISO()}">
     </div>
 
+    ${activePlan ? renderPlanGuidedSection(activePlan) : renderFreeformSection()}
+  `;
+
+  document.getElementById('log-date').addEventListener('change', (e) => {
+    state.logDate = e.target.value;
+    renderLog();
+  });
+
+  attachTimerCardListeners();
+
+  if (activePlan) {
+    attachPlanGuidedListeners(panel);
+  } else {
+    attachFreeformListeners(panel);
+  }
+}
+
+// ---------- Лог: свободный режим (поиск/избранное/один выбранный элемент) ----------
+
+function renderExercisePickerCard() {
+  if (!state.logExerciseId || !getExercise(state.logExerciseId)) {
+    state.logExerciseId = state.exercises.length ? state.exercises[0].id : null;
+  }
+
+  const sortedExercises = [...state.exercises].sort((a, b) => (b.favorite ? 1 : 0) - (a.favorite ? 1 : 0));
+  const exOptions = sortedExercises
+    .map(e => `<option value="${e.id}" ${e.id === state.logExerciseId ? 'selected' : ''}>${e.favorite ? '★ ' : ''}${escapeHtml(e.name)} (${CATEGORY_META[e.category].label})</option>`)
+    .join('');
+
+  const favorites = state.exercises.filter(e => e.favorite);
+  const selectedEx = getExercise(state.logExerciseId);
+  const todayEntryForSelected = selectedEx
+    ? state.entries.find(e => e.exerciseId === selectedEx.id && e.date === state.logDate)
+    : null;
+
+  return `
     <div class="card">
       <label class="field-label">Упражнение / тренажёр</label>
       ${favorites.length ? `<div class="fav-chips">${favorites.map(e => `<button class="chip fav-chip ${e.id === state.logExerciseId ? 'chip-active' : ''}" data-fav-pick="${e.id}">${ICONS.starFilled}<span>${escapeHtml(e.name)}</span></button>`).join('')}</div>` : ''}
@@ -465,16 +584,10 @@ function renderLog() {
       <button class="btn-primary" id="log-add-set">+ Добавить подход</button>
       ${todayEntryForSelected && todayEntryForSelected.sets.length ? `<button class="btn-secondary" id="repeat-set-btn">${ICONS.repeat}<span>Повторить последний подход</span></button>` : ''}
     </div>
-
-    <div class="section-title">Сегодня записано</div>
-    <div id="log-entries">${dayEntries.length ? dayEntries.map(renderEntryCard).join('') : '<p class="empty-hint">Пока пусто. Добавьте первый подход выше.</p>'}</div>
   `;
+}
 
-  document.getElementById('log-date').addEventListener('change', (e) => {
-    state.logDate = e.target.value;
-    renderLog();
-  });
-
+function attachExercisePickerListeners(panel) {
   const exSelect = document.getElementById('log-exercise');
   const renderFields = () => {
     const ex = getExercise(exSelect.value);
@@ -497,14 +610,6 @@ function renderLog() {
       if (!set) return;
       ensureAudioUnlocked();
       addSetToLog(ex.id, state.logDate, set);
-    });
-  }
-
-  const prBannerClose = document.getElementById('pr-banner-close');
-  if (prBannerClose) {
-    prBannerClose.addEventListener('click', () => {
-      state.lastPR = null;
-      renderLog();
     });
   }
 
@@ -548,9 +653,154 @@ function renderLog() {
       addSetToLog(ex.id, state.logDate, { ...lastSet });
     });
   }
+}
+
+function renderFreeformSection() {
+  const dayEntries = state.entries.filter(e => e.date === state.logDate);
+  return `
+    ${renderExercisePickerCard()}
+    <div class="section-title">Сегодня записано</div>
+    <div id="log-entries">${dayEntries.length ? dayEntries.map(renderEntryCard).join('') : '<p class="empty-hint">Пока пусто. Добавьте первый подход выше.</p>'}</div>
+  `;
+}
+
+function attachFreeformListeners(panel) {
+  attachExercisePickerListeners(panel);
+  attachEntryCardListeners(panel, renderLog);
+}
+
+// ---------- Лог: режим по плану тренировки ----------
+
+function renderPlanGuidedSection(plan) {
+  const planExIdSet = new Set(plan.exerciseIds);
+  const doneCount = plan.exerciseIds.filter(id => isPlanExerciseDone(id, state.logDate)).length;
+
+  const itemsHtml = plan.exerciseIds.map((exId, i) => {
+    const ex = getExercise(exId);
+    if (!ex) return '';
+    const meta = CATEGORY_META[ex.category];
+    const done = isPlanExerciseDone(exId, state.logDate);
+    const expanded = state.expandedPlanExerciseId === exId;
+    const entry = state.entries.find(e => e.exerciseId === exId && e.date === state.logDate);
+
+    return `
+      <div class="plan-exercise ${done ? 'plan-exercise-done' : ''} ${expanded ? 'plan-exercise-open' : ''}">
+        <button class="plan-exercise-head" data-plan-ex-toggle="${exId}">
+          <span class="plan-exercise-num">${done ? ICONS.check : i + 1}</span>
+          <span class="plan-exercise-name">${escapeHtml(ex.name)}</span>
+          <span class="entry-row-cat" style="color:${meta.color}">${meta.icon}</span>
+        </button>
+        ${expanded ? `
+          <div class="plan-exercise-body">
+            ${renderLastHintHtml(ex)}
+            <div id="plan-fields" class="set-fields">${setFieldsHtml(ex.category)}</div>
+            <button class="btn-primary" id="plan-add-set-btn" data-plan-ex="${exId}">+ Добавить подход</button>
+            ${entry && entry.sets.length ? renderSetsListHtml(entry, ex) : ''}
+          </div>
+        ` : ''}
+      </div>
+    `;
+  }).join('');
+
+  const extraEntries = state.entries.filter(e => e.date === state.logDate && !planExIdSet.has(e.exerciseId));
+
+  return `
+    <div class="card plan-progress-card">
+      <div class="plan-progress-head">
+        <span class="plan-progress-title">${ICONS.plan}<strong>${escapeHtml(plan.name)}</strong></span>
+        <span class="plan-progress-count">${doneCount}/${plan.exerciseIds.length}</span>
+      </div>
+      <button class="btn-ghost" id="exit-plan-btn">Выйти из плана</button>
+    </div>
+
+    <div id="plan-exercise-list">${itemsHtml}</div>
+
+    <div class="section-title">Вне плана</div>
+    ${state.showPlanExtra ? renderExercisePickerCard() : `<button class="btn-secondary" id="show-plan-extra-btn">${ICONS.search}<span>Добавить упражнение вне плана</span></button>`}
+    ${extraEntries.length ? `<div id="plan-extra-entries">${extraEntries.map(renderEntryCard).join('')}</div>` : ''}
+  `;
+}
+
+function attachPlanGuidedListeners(panel) {
+  const exitBtn = document.getElementById('exit-plan-btn');
+  if (exitBtn) {
+    exitBtn.addEventListener('click', () => {
+      exitPlan();
+      render();
+    });
+  }
+
+  panel.querySelectorAll('[data-plan-ex-toggle]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const exId = btn.dataset.planExToggle;
+      state.expandedPlanExerciseId = state.expandedPlanExerciseId === exId ? null : exId;
+      renderLog();
+    });
+  });
+
+  const planAddSetBtn = document.getElementById('plan-add-set-btn');
+  if (planAddSetBtn) {
+    planAddSetBtn.addEventListener('click', () => {
+      const ex = getExercise(planAddSetBtn.dataset.planEx);
+      if (!ex) return;
+      const set = readSetFields(ex.category, 'plan-fields');
+      if (!set) return;
+      ensureAudioUnlocked();
+      addSetToLog(ex.id, state.logDate, set);
+    });
+  }
+
+  const showExtraBtn = document.getElementById('show-plan-extra-btn');
+  if (showExtraBtn) {
+    showExtraBtn.addEventListener('click', () => {
+      state.showPlanExtra = true;
+      renderLog();
+    });
+  }
+
+  if (state.showPlanExtra) {
+    attachExercisePickerListeners(panel);
+  }
 
   attachEntryCardListeners(panel, renderLog);
+}
 
+// ---------- Карточка таймера тренировки (+ запуск по плану) ----------
+
+function renderTimerCard() {
+  if (state.session) {
+    const elapsed = Math.floor((Date.now() - state.session.startedAt) / 1000);
+    return `
+      <div class="hero-stat">
+        <div class="hero-stat-label">${ICONS.timer}<span>Тренировка идёт</span></div>
+        <div class="hero-stat-value" id="session-elapsed">${formatDuration(elapsed)}</div>
+        <button class="btn-ghost" id="end-session-btn">Завершить тренировку</button>
+      </div>
+    `;
+  }
+
+  const last = state.sessions.length ? state.sessions[state.sessions.length - 1] : null;
+  const planPickerHtml = state.showPlanPicker && state.plans.length
+    ? `<div class="plan-picker">${state.plans.map(p => `
+        <button class="plan-picker-item" data-start-plan="${p.id}">
+          ${ICONS.play}
+          <span class="plan-picker-name">${escapeHtml(p.name)}</span>
+          <span class="muted">${p.exerciseIds.length} упр.</span>
+        </button>
+      `).join('')}</div>`
+    : '';
+
+  return `
+    <div class="hero-stat hero-stat-idle">
+      <button class="btn-primary" id="start-session-btn">Начать тренировку</button>
+      ${state.plans.length ? `<button class="btn-ghost" id="toggle-plan-picker-btn">${state.showPlanPicker ? 'Скрыть планы' : 'Начать по плану'}</button>` : ''}
+      ${planPickerHtml}
+      ${last ? `<div class="timer-last">Последняя: ${formatSessionSummary(last)}</div>` : ''}
+    </div>
+  `;
+}
+
+function attachTimerCardListeners() {
   const startBtn = document.getElementById('start-session-btn');
   if (startBtn) {
     startBtn.addEventListener('click', () => {
@@ -568,6 +818,30 @@ function renderLog() {
     });
   }
 
+  const togglePlanPickerBtn = document.getElementById('toggle-plan-picker-btn');
+  if (togglePlanPickerBtn) {
+    togglePlanPickerBtn.addEventListener('click', () => {
+      state.showPlanPicker = !state.showPlanPicker;
+      renderLog();
+    });
+  }
+
+  document.querySelectorAll('[data-start-plan]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      ensureAudioUnlocked();
+      startPlan(btn.dataset.startPlan);
+      render();
+    });
+  });
+
+  const prBannerClose = document.getElementById('pr-banner-close');
+  if (prBannerClose) {
+    prBannerClose.addEventListener('click', () => {
+      state.lastPR = null;
+      renderLog();
+    });
+  }
+
   const restMinusBtn = document.getElementById('rest-minus-btn');
   if (restMinusBtn) restMinusBtn.addEventListener('click', () => adjustRestTimer(-15));
 
@@ -576,27 +850,6 @@ function renderLog() {
 
   const restSkipBtn = document.getElementById('rest-skip-btn');
   if (restSkipBtn) restSkipBtn.addEventListener('click', skipRestTimer);
-}
-
-function renderTimerCard() {
-  if (state.session) {
-    const elapsed = Math.floor((Date.now() - state.session.startedAt) / 1000);
-    return `
-      <div class="hero-stat">
-        <div class="hero-stat-label">${ICONS.timer}<span>Тренировка идёт</span></div>
-        <div class="hero-stat-value" id="session-elapsed">${formatDuration(elapsed)}</div>
-        <button class="btn-ghost" id="end-session-btn">Завершить тренировку</button>
-      </div>
-    `;
-  }
-
-  const last = state.sessions.length ? state.sessions[state.sessions.length - 1] : null;
-  return `
-    <div class="hero-stat hero-stat-idle">
-      <button class="btn-primary" id="start-session-btn">Начать тренировку</button>
-      ${last ? `<div class="timer-last">Последняя: ${formatSessionSummary(last)}</div>` : ''}
-    </div>
-  `;
 }
 
 function formatSessionSummary(session) {
@@ -652,12 +905,12 @@ function setFieldsHtml(category) {
   `).join('');
 }
 
-function readSetFields(category) {
+function readSetFields(category, containerId = 'log-fields') {
   const fields = FIELD_CONFIG[category];
   const set = {};
   let hasValue = false;
   fields.forEach(f => {
-    const input = document.querySelector(`#log-fields [data-field="${f}"]`);
+    const input = document.querySelector(`#${containerId} [data-field="${f}"]`);
     const val = input ? parseFloat(input.value) : NaN;
     set[f] = isNaN(val) ? 0 : val;
     if (!isNaN(val) && val > 0) hasValue = true;
@@ -703,15 +956,12 @@ function removeSet(entryId, setIndex) {
   render();
 }
 
-function renderEntryCard(entry) {
-  const ex = getExercise(entry.exerciseId);
-  if (!ex) return '';
-  const meta = CATEGORY_META[ex.category];
+function renderSetsListHtml(entry, ex) {
   const fields = FIELD_CONFIG[ex.category];
   const labels = { weight: 'кг', reps: 'повт', duration: 'мин', distance: 'км' };
   const fieldLabels = { weight: 'Вес, кг', reps: 'Повторы', duration: 'Время, мин', distance: 'Дистанция, км' };
 
-  const setsHtml = entry.sets.map((s, i) => {
+  return entry.sets.map((s, i) => {
     const isEditing = state.editingSet && state.editingSet.entryId === entry.id && state.editingSet.setIndex === i;
 
     if (isEditing) {
@@ -739,6 +989,12 @@ function renderEntryCard(entry) {
       </span>
     </div>`;
   }).join('');
+}
+
+function renderEntryCard(entry) {
+  const ex = getExercise(entry.exerciseId);
+  if (!ex) return '';
+  const meta = CATEGORY_META[ex.category];
 
   return `
     <div class="entry-row" style="border-left-color:${meta.color}">
@@ -746,7 +1002,7 @@ function renderEntryCard(entry) {
         <strong>${escapeHtml(ex.name)}</strong>
         <span class="entry-row-cat" style="color:${meta.color}">${meta.icon}<span>${meta.label}</span></span>
       </div>
-      ${setsHtml}
+      ${renderSetsListHtml(entry, ex)}
     </div>
   `;
 }
@@ -828,6 +1084,24 @@ function renderLibrary() {
       <input type="text" id="library-search" placeholder="Поиск по списку..." value="${escapeHtml(state.librarySearch)}">
     </div>
     <div id="library-list"></div>
+
+    <div class="section-title">${ICONS.plan}<span>Мои тренировки</span></div>
+    <div class="card">
+      <label class="field-label">Название плана</label>
+      <input type="text" id="plan-name-input" placeholder="Например: День 1 — Жим" value="${escapeHtml(state.planBuilder.name)}">
+
+      <label class="field-label">Добавить упражнение в план</label>
+      <select id="plan-add-exercise-select">
+        ${state.exercises.map(e => `<option value="${e.id}">${escapeHtml(e.name)} (${CATEGORY_META[e.category].label})</option>`).join('')}
+      </select>
+      <button class="btn-secondary" id="plan-add-exercise-btn">${ICONS.plan}<span>Добавить в план</span></button>
+
+      <div id="plan-builder-list"></div>
+
+      <button class="btn-primary" id="plan-save-btn">${state.planBuilder.editingPlanId ? 'Сохранить изменения' : 'Создать план'}</button>
+      ${state.planBuilder.editingPlanId ? `<button class="btn-ghost" id="plan-cancel-btn">Отменить редактирование</button>` : ''}
+    </div>
+    <div id="plans-list"></div>
   `;
 
   document.getElementById('add-exercise').addEventListener('click', () => {
@@ -846,7 +1120,131 @@ function renderLibrary() {
     renderLibraryList();
   });
 
+  document.getElementById('plan-name-input').addEventListener('input', (e) => {
+    state.planBuilder.name = e.target.value;
+  });
+
+  document.getElementById('plan-add-exercise-btn').addEventListener('click', () => {
+    const select = document.getElementById('plan-add-exercise-select');
+    const exId = select.value;
+    if (!exId || state.planBuilder.exerciseIds.includes(exId)) return;
+    state.planBuilder.exerciseIds.push(exId);
+    renderPlanBuilderList();
+  });
+
+  document.getElementById('plan-save-btn').addEventListener('click', () => {
+    const name = state.planBuilder.name.trim();
+    if (!name || state.planBuilder.exerciseIds.length === 0) return;
+    createOrUpdatePlan({
+      editingPlanId: state.planBuilder.editingPlanId,
+      name,
+      exerciseIds: [...state.planBuilder.exerciseIds]
+    });
+    state.planBuilder = { editingPlanId: null, name: '', exerciseIds: [] };
+    renderLibrary();
+  });
+
+  const cancelBtn = document.getElementById('plan-cancel-btn');
+  if (cancelBtn) {
+    cancelBtn.addEventListener('click', () => {
+      state.planBuilder = { editingPlanId: null, name: '', exerciseIds: [] };
+      renderLibrary();
+    });
+  }
+
   renderLibraryList();
+  renderPlanBuilderList();
+  renderPlansList();
+}
+
+function renderPlanBuilderList() {
+  const container = document.getElementById('plan-builder-list');
+  if (!container) return;
+
+  const ids = state.planBuilder.exerciseIds;
+  if (ids.length === 0) {
+    container.innerHTML = '<p class="empty-hint">Добавьте хотя бы одно упражнение в план.</p>';
+    return;
+  }
+
+  container.innerHTML = ids.map((exId, i) => {
+    const ex = getExercise(exId);
+    if (!ex) return '';
+    const meta = CATEGORY_META[ex.category];
+    return `
+      <div class="plan-builder-row">
+        <span class="plan-builder-num">${i + 1}</span>
+        <span class="badge" style="background:${meta.color}22;color:${meta.color}">${meta.icon}</span>
+        <span class="plan-builder-name">${escapeHtml(ex.name)}</span>
+        <span class="plan-builder-actions">
+          <button class="icon-btn" data-plan-move-up="${i}" aria-label="Выше" ${i === 0 ? 'disabled' : ''}>${ICONS.up}</button>
+          <button class="icon-btn" data-plan-move-down="${i}" aria-label="Ниже" ${i === ids.length - 1 ? 'disabled' : ''}>${ICONS.down}</button>
+          <button class="icon-btn" data-plan-remove="${i}" aria-label="Убрать из плана">${ICONS.close}</button>
+        </span>
+      </div>
+    `;
+  }).join('');
+
+  container.querySelectorAll('[data-plan-move-up]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const i = Number(btn.dataset.planMoveUp);
+      const ids2 = state.planBuilder.exerciseIds;
+      [ids2[i - 1], ids2[i]] = [ids2[i], ids2[i - 1]];
+      renderPlanBuilderList();
+    });
+  });
+
+  container.querySelectorAll('[data-plan-move-down]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const i = Number(btn.dataset.planMoveDown);
+      const ids2 = state.planBuilder.exerciseIds;
+      [ids2[i + 1], ids2[i]] = [ids2[i], ids2[i + 1]];
+      renderPlanBuilderList();
+    });
+  });
+
+  container.querySelectorAll('[data-plan-remove]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const i = Number(btn.dataset.planRemove);
+      state.planBuilder.exerciseIds.splice(i, 1);
+      renderPlanBuilderList();
+    });
+  });
+}
+
+function renderPlansList() {
+  const container = document.getElementById('plans-list');
+  if (!container) return;
+
+  if (state.plans.length === 0) {
+    container.innerHTML = '';
+    return;
+  }
+
+  container.innerHTML = state.plans.map(plan => `
+    <div class="library-row">
+      <span>${escapeHtml(plan.name)} <span class="muted">(${plan.exerciseIds.length} упр.)</span></span>
+      <span class="set-row-actions">
+        <button class="icon-btn" data-edit-plan="${plan.id}" aria-label="Изменить">${ICONS.edit}</button>
+        <button class="icon-btn" data-delete-plan="${plan.id}" aria-label="Удалить">${ICONS.trash}</button>
+      </span>
+    </div>
+  `).join('');
+
+  container.querySelectorAll('[data-edit-plan]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const plan = getPlan(btn.dataset.editPlan);
+      if (!plan) return;
+      state.planBuilder = { editingPlanId: plan.id, name: plan.name, exerciseIds: [...plan.exerciseIds] };
+      renderLibrary();
+    });
+  });
+
+  container.querySelectorAll('[data-delete-plan]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      deletePlanWithUndo(btn.dataset.deletePlan);
+    });
+  });
 }
 
 function renderLibraryList() {

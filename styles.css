@@ -920,6 +920,61 @@ input:focus, select:focus {
 
 .library-row:last-child { border-bottom: none; }
 
+.library-row .muted { color: var(--text-muted); font-size: 12px; }
+
+/* ---------- Конструктор плана тренировки ---------- */
+
+.plan-builder-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.plan-builder-row:last-child { border-bottom: none; }
+
+.plan-builder-num {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--surface-2);
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.plan-builder-name {
+  flex: 1;
+  font-size: 14px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.plan-builder-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.plan-builder-actions .icon-btn:disabled {
+  opacity: 0.25;
+  cursor: default;
+}
+
+.plan-builder-actions [data-plan-move-up] .icon,
+.plan-builder-actions [data-plan-move-down] .icon {
+  width: 13px;
+  height: 13px;
+}
+
 .period-buttons {
   display: flex;
   gap: 8px;
@@ -1112,6 +1167,133 @@ input:focus, select:focus {
   white-space: nowrap;
   padding: 4px 6px;
   flex-shrink: 0;
+}
+
+/* ---------- Планы тренировок ---------- */
+
+.plan-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+  text-align: left;
+}
+
+.plan-picker-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 12px 14px;
+  background: var(--surface-2);
+  border: 1px solid var(--border-strong);
+  border-radius: 10px;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.plan-picker-item .icon { width: 14px; height: 14px; color: var(--accent); flex-shrink: 0; }
+.plan-picker-name { flex: 1; font-size: 14px; font-weight: 600; text-align: left; }
+.plan-picker-item .muted { font-size: 12px; color: var(--text-muted); }
+
+.plan-progress-card {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.plan-progress-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.plan-progress-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+}
+
+.plan-progress-title .icon { width: 16px; height: 16px; color: var(--accent); }
+
+.plan-progress-count {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.plan-progress-card .btn-ghost {
+  margin-top: 4px;
+  padding-left: 0;
+  justify-content: flex-start;
+}
+
+.plan-exercise {
+  border-bottom: 1px solid var(--border);
+}
+
+.plan-exercise:last-child { border-bottom: none; }
+
+.plan-exercise-head {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  color: var(--text);
+}
+
+.plan-exercise-num {
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--surface-2);
+  border: 1px solid var(--border-strong);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.plan-exercise-num .icon { width: 12px; height: 12px; }
+
+.plan-exercise-done .plan-exercise-num {
+  background: rgba(var(--up-rgb), 0.18);
+  border-color: var(--up);
+  color: var(--up);
+}
+
+.plan-exercise-name {
+  flex: 1;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.plan-exercise-done .plan-exercise-name {
+  color: var(--text-muted);
+}
+
+.plan-exercise-open .plan-exercise-head {
+  color: var(--accent);
+}
+
+.plan-exercise-body {
+  padding-bottom: 16px;
+}
+
+.plan-exercise-body .set-fields {
+  margin-top: 0;
 }
 
 @media (min-width: 600px) {
