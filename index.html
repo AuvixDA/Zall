@@ -12,8 +12,24 @@
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+  <div class="bg-texture" aria-hidden="true"></div>
+  <div class="bg-glow" aria-hidden="true"></div>
+  <div class="bg-plates" aria-hidden="true">
+    <svg viewBox="0 0 200 200"><circle cx="100" cy="100" r="92" fill="none" stroke="currentColor" stroke-width="16"/><circle cx="100" cy="100" r="40" fill="none" stroke="currentColor" stroke-width="10"/></svg>
+    <svg viewBox="0 0 200 200"><circle cx="100" cy="100" r="92" fill="none" stroke="currentColor" stroke-width="16"/><circle cx="100" cy="100" r="40" fill="none" stroke="currentColor" stroke-width="10"/></svg>
+  </div>
+
   <header class="app-header">
-    <h1>Трекер тренировок</h1>
+    <div class="header-inner">
+      <svg class="header-icon" viewBox="0 0 64 24" fill="none">
+        <rect x="1" y="6" width="6" height="12" rx="1.5" fill="currentColor"/>
+        <rect x="8" y="3" width="4" height="18" rx="1.5" fill="currentColor"/>
+        <rect x="13" y="10" width="38" height="4" rx="2" fill="currentColor"/>
+        <rect x="52" y="3" width="4" height="18" rx="1.5" fill="currentColor"/>
+        <rect x="57" y="6" width="6" height="12" rx="1.5" fill="currentColor"/>
+      </svg>
+      <h1>Трекер тренировок</h1>
+    </div>
   </header>
 
   <main class="app-main">
