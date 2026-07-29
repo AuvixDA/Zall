@@ -244,6 +244,77 @@ input:focus, select:focus {
 
 .last-hint:empty { display: none; }
 
+/* ---------- Поиск и избранное ---------- */
+
+.search-box {
+  position: relative;
+  display: flex;
+  align-items: center;
+  margin-top: 10px;
+}
+
+.search-box > .icon {
+  position: absolute;
+  left: 12px;
+  width: 16px;
+  height: 16px;
+  color: var(--text-muted);
+  pointer-events: none;
+}
+
+.search-box input {
+  padding-left: 36px;
+}
+
+.search-results:not(:empty) {
+  margin-top: 6px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--surface-2);
+}
+
+.search-result-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  color: var(--text);
+  padding: 10px 12px;
+  font-size: 14px;
+  cursor: pointer;
+  border-bottom: 1px solid var(--border);
+}
+
+.search-result-item:last-child { border-bottom: none; }
+.search-result-item:active { background: rgba(255, 255, 255, 0.06); }
+.search-result-item .muted { color: var(--text-muted); font-size: 12px; }
+
+.fav-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.fav-chip {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.fav-chip .icon {
+  width: 12px;
+  height: 12px;
+  color: var(--accent);
+}
+
+.fav-chip.chip-active .icon { color: #1a0d05; }
+
+.icon-btn.is-favorite { color: var(--accent); }
+
 .set-field label {
   display: block;
   font-size: 12px;

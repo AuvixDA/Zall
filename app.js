@@ -24,7 +24,10 @@ const ICONS = {
   hourglass: '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12"/><path d="M6 21h12"/><path d="M6 3c0 5 5 6 6 9-1 3-6 4-6 9"/><path d="M18 3c0 5-5 6-6 9 1 3 6 4 6 9"/></svg>',
   edit: '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>',
   check: '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12l5 5L20 6"/></svg>',
-  repeat: '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4v5h5"/><path d="M20 20v-5h-5"/><path d="M5 13a7 7 0 0 1 12-4.5L20 11"/><path d="M19 11a7 7 0 0 1-12 4.5L4 13"/></svg>'
+  repeat: '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4v5h5"/><path d="M20 20v-5h-5"/><path d="M5 13a7 7 0 0 1 12-4.5L20 11"/><path d="M19 11a7 7 0 0 1-12 4.5L4 13"/></svg>',
+  starOutline: '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 3.2l2.7 5.6 6.1.7-4.5 4.2 1.2 6.1L12 16.9l-5.5 2.9 1.2-6.1-4.5-4.2 6.1-.7z"/></svg>',
+  starFilled: '<svg class="icon" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 3.2l2.7 5.6 6.1.7-4.5 4.2 1.2 6.1L12 16.9l-5.5 2.9 1.2-6.1-4.5-4.2 6.1-.7z"/></svg>',
+  search: '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.2" y2="16.2"/></svg>'
 };
 
 const CATEGORY_META = {
@@ -63,7 +66,8 @@ let state = {
   session: null,
   sessions: [],
   logExerciseId: null,
-  editingSet: null
+  editingSet: null,
+  librarySearch: ''
 };
 
 let audioCtx = null;
@@ -356,9 +360,12 @@ function renderLog() {
     state.logExerciseId = state.exercises.length ? state.exercises[0].id : null;
   }
 
-  const exOptions = state.exercises
-    .map(e => `<option value="${e.id}" ${e.id === state.logExerciseId ? 'selected' : ''}>${escapeHtml(e.name)} (${CATEGORY_META[e.category].label})</option>`)
+  const sortedExercises = [...state.exercises].sort((a, b) => (b.favorite ? 1 : 0) - (a.favorite ? 1 : 0));
+  const exOptions = sortedExercises
+    .map(e => `<option value="${e.id}" ${e.id === state.logExerciseId ? 'selected' : ''}>${e.favorite ? '★ ' : ''}${escapeHtml(e.name)} (${CATEGORY_META[e.category].label})</option>`)
     .join('');
+
+  const favorites = state.exercises.filter(e => e.favorite);
 
   const dayEntries = state.entries.filter(e => e.date === state.logDate);
   const selectedEx = getExercise(state.logExerciseId);
@@ -377,6 +384,12 @@ function renderLog() {
 
     <div class="card">
       <label class="field-label">Упражнение / тренажёр</label>
+      ${favorites.length ? `<div class="fav-chips">${favorites.map(e => `<button class="chip fav-chip ${e.id === state.logExerciseId ? 'chip-active' : ''}" data-fav-pick="${e.id}">${ICONS.starFilled}<span>${escapeHtml(e.name)}</span></button>`).join('')}</div>` : ''}
+      <div class="search-box">
+        ${ICONS.search}
+        <input type="text" id="log-exercise-search" placeholder="Поиск упражнения...">
+      </div>
+      <div id="log-exercise-results" class="search-results"></div>
       <select id="log-exercise">${exOptions || '<option disabled>Сначала добавьте упражнение</option>'}</select>
       <div id="log-last-hint">${renderLastHintHtml(selectedEx)}</div>
       <div id="log-fields" class="set-fields"></div>
@@ -415,6 +428,35 @@ function renderLog() {
       if (!set) return;
       ensureAudioUnlocked();
       addSetToLog(ex.id, state.logDate, set);
+    });
+  }
+
+  panel.querySelectorAll('[data-fav-pick]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      state.logExerciseId = btn.dataset.favPick;
+      renderLog();
+    });
+  });
+
+  const searchInput = document.getElementById('log-exercise-search');
+  const resultsEl = document.getElementById('log-exercise-results');
+  if (searchInput && resultsEl) {
+    searchInput.addEventListener('input', () => {
+      const q = searchInput.value.trim().toLowerCase();
+      if (!q) {
+        resultsEl.innerHTML = '';
+        return;
+      }
+      const matches = state.exercises.filter(e => e.name.toLowerCase().includes(q)).slice(0, 8);
+      resultsEl.innerHTML = matches.length
+        ? matches.map(e => `<button class="search-result-item" data-search-pick="${e.id}">${escapeHtml(e.name)} <span class="muted">(${CATEGORY_META[e.category].label})</span></button>`).join('')
+        : '<div class="empty-hint" style="padding:8px 0;">Ничего не найдено</div>';
+      resultsEl.querySelectorAll('[data-search-pick]').forEach(resultBtn => {
+        resultBtn.addEventListener('click', () => {
+          state.logExerciseId = resultBtn.dataset.searchPick;
+          renderLog();
+        });
+      });
     });
   }
 
@@ -669,25 +711,6 @@ function attachEntryCardListeners(panel, rerender) {
 
 function renderLibrary() {
   const panel = document.getElementById('panel-library');
-  const grouped = {};
-  state.exercises.forEach(e => {
-    grouped[e.category] = grouped[e.category] || [];
-    grouped[e.category].push(e);
-  });
-
-  const listHtml = Object.keys(CATEGORY_META).map(cat => {
-    const items = grouped[cat] || [];
-    if (items.length === 0) return '';
-    return `
-      <div class="section-title">${CATEGORY_META[cat].icon}<span>${CATEGORY_META[cat].label}</span></div>
-      ${items.map(e => `
-        <div class="card row-card">
-          <span>${escapeHtml(e.name)}</span>
-          <button class="icon-btn" data-delete-ex="${e.id}" aria-label="Удалить">${ICONS.trash}</button>
-        </div>
-      `).join('')}
-    `;
-  }).join('');
 
   panel.innerHTML = `
     <div class="card">
@@ -699,7 +722,11 @@ function renderLibrary() {
       </select>
       <button class="btn-primary" id="add-exercise">+ Добавить</button>
     </div>
-    ${listHtml || '<p class="empty-hint">Список пуст.</p>'}
+    <div class="search-box">
+      ${ICONS.search}
+      <input type="text" id="library-search" placeholder="Поиск по списку..." value="${escapeHtml(state.librarySearch)}">
+    </div>
+    <div id="library-list"></div>
   `;
 
   document.getElementById('add-exercise').addEventListener('click', () => {
@@ -707,12 +734,63 @@ function renderLibrary() {
     const category = document.getElementById('new-ex-category').value;
     const name = nameInput.value.trim();
     if (!name) return;
-    state.exercises.push({ id: uid(), name, category });
+    state.exercises.push({ id: uid(), name, category, favorite: false });
     saveExercises();
-    renderLibrary();
+    renderLibraryList();
+    nameInput.value = '';
   });
 
-  panel.querySelectorAll('[data-delete-ex]').forEach(btn => {
+  document.getElementById('library-search').addEventListener('input', (e) => {
+    state.librarySearch = e.target.value;
+    renderLibraryList();
+  });
+
+  renderLibraryList();
+}
+
+function renderLibraryList() {
+  const container = document.getElementById('library-list');
+  if (!container) return;
+
+  const q = state.librarySearch.trim().toLowerCase();
+  const grouped = {};
+  state.exercises
+    .filter(e => !q || e.name.toLowerCase().includes(q))
+    .forEach(e => {
+      grouped[e.category] = grouped[e.category] || [];
+      grouped[e.category].push(e);
+    });
+
+  const listHtml = Object.keys(CATEGORY_META).map(cat => {
+    const items = grouped[cat] || [];
+    if (items.length === 0) return '';
+    return `
+      <div class="section-title">${CATEGORY_META[cat].icon}<span>${CATEGORY_META[cat].label}</span></div>
+      ${items.map(e => `
+        <div class="card row-card">
+          <span>${escapeHtml(e.name)}</span>
+          <span class="set-row-actions">
+            <button class="icon-btn ${e.favorite ? 'is-favorite' : ''}" data-toggle-fav="${e.id}" aria-label="Избранное">${e.favorite ? ICONS.starFilled : ICONS.starOutline}</button>
+            <button class="icon-btn" data-delete-ex="${e.id}" aria-label="Удалить">${ICONS.trash}</button>
+          </span>
+        </div>
+      `).join('')}
+    `;
+  }).join('');
+
+  container.innerHTML = listHtml || '<p class="empty-hint">Ничего не найдено.</p>';
+
+  container.querySelectorAll('[data-toggle-fav]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const ex = getExercise(btn.dataset.toggleFav);
+      if (!ex) return;
+      ex.favorite = !ex.favorite;
+      saveExercises();
+      renderLibraryList();
+    });
+  });
+
+  container.querySelectorAll('[data-delete-ex]').forEach(btn => {
     btn.addEventListener('click', () => {
       const id = btn.dataset.deleteEx;
       if (!confirm('Удалить упражнение? История тренировок по нему тоже будет удалена.')) return;
@@ -720,7 +798,7 @@ function renderLibrary() {
       state.entries = state.entries.filter(e => e.exerciseId !== id);
       saveExercises();
       saveEntries();
-      renderLibrary();
+      renderLibraryList();
     });
   });
 }
