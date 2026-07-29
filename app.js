@@ -271,6 +271,36 @@ function updateSessionTimerUI() {
 function tickTimers() {
   updateRestTimerUI();
   updateSessionTimerUI();
+  updateGlobalStatusBar();
+}
+
+// ---------- Глобальная мини-полоса таймера (видна на любой вкладке и поверх модалки) ----------
+
+function updateGlobalStatusBar() {
+  const bar = document.getElementById('global-status');
+  if (!bar) return;
+
+  const sessionItem = document.getElementById('global-session-item');
+  const sessionTimeEl = document.getElementById('global-session-time');
+  if (state.session) {
+    sessionItem.hidden = false;
+    sessionTimeEl.textContent = formatDuration(Math.floor((Date.now() - state.session.startedAt) / 1000));
+  } else {
+    sessionItem.hidden = true;
+  }
+
+  const restItem = document.getElementById('global-rest-item');
+  const restTimeEl = document.getElementById('global-rest-time');
+  if (state.restTimer) {
+    const remaining = Math.max(0, Math.ceil((state.restTimer.endAt - Date.now()) / 1000));
+    restItem.hidden = false;
+    restItem.classList.toggle('rest-done', remaining <= 0);
+    restTimeEl.textContent = formatSeconds(remaining);
+  } else {
+    restItem.hidden = true;
+  }
+
+  bar.hidden = !state.session && !state.restTimer;
 }
 
 // ---------- Звук и вибрация по окончании отдыха ----------
@@ -364,6 +394,8 @@ function render() {
   if (state.tab === 'library') renderLibrary();
   if (state.tab === 'history') renderHistory();
   if (state.tab === 'analytics') renderAnalytics();
+
+  updateGlobalStatusBar();
 }
 
 function switchTab(tab) {
@@ -861,13 +893,7 @@ function renderLibraryList() {
 
   container.querySelectorAll('[data-delete-ex]').forEach(btn => {
     btn.addEventListener('click', () => {
-      const id = btn.dataset.deleteEx;
-      if (!confirm('Удалить упражнение? История тренировок по нему тоже будет удалена.')) return;
-      state.exercises = state.exercises.filter(e => e.id !== id);
-      state.entries = state.entries.filter(e => e.exerciseId !== id);
-      saveExercises();
-      saveEntries();
-      renderLibraryList();
+      deleteExerciseWithUndo(btn.dataset.deleteEx);
     });
   });
 }
@@ -949,6 +975,27 @@ function getTrainedDatesSet() {
   return set;
 }
 
+const WEEKLY_GOAL = 3; // сколько тренировок в неделю считаем "выполненной нормой" для серии
+
+function getWeekStart(date) {
+  const d = new Date(date);
+  d.setHours(0, 0, 0, 0);
+  const dayOfWeek = (d.getDay() + 6) % 7; // 0=Пн ... 6=Вс
+  d.setDate(d.getDate() - dayOfWeek);
+  return d;
+}
+
+function countTrainedDaysInWeek(trainedDates, weekStart, today) {
+  let count = 0;
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(weekStart);
+    d.setDate(weekStart.getDate() + i);
+    if (d > today) break;
+    if (trainedDates.has(toISO(d))) count++;
+  }
+  return count;
+}
+
 function renderStreakCalendar() {
   const trainedDates = getTrainedDatesSet();
   const weeks = 10;
@@ -982,26 +1029,32 @@ function renderStreakCalendar() {
     columnsHtml += `<div class="streak-col">${colCells}</div>`;
   }
 
-  let streak = 0;
-  const cursor = new Date(today);
-  if (!trainedDates.has(toISO(cursor))) cursor.setDate(cursor.getDate() - 1);
-  while (trainedDates.has(toISO(cursor))) {
-    streak++;
-    cursor.setDate(cursor.getDate() - 1);
+  // "Серия" считается по неделям, а не по подряд идущим календарным дням —
+  // так честнее для расписания 3-4 тренировки в неделю с днями отдыха между ними.
+  const thisWeekStart = getWeekStart(today);
+  const thisWeekCount = countTrainedDaysInWeek(trainedDates, thisWeekStart, today);
+
+  let weekStreak = 0;
+  const cursor = new Date(thisWeekStart);
+  cursor.setDate(cursor.getDate() - 7);
+  while (countTrainedDaysInWeek(trainedDates, cursor, today) >= WEEKLY_GOAL) {
+    weekStreak++;
+    cursor.setDate(cursor.getDate() - 7);
   }
 
   const totalTrained = days.filter(d => d <= today && trainedDates.has(toISO(d))).length;
+  const streakLabel = weekStreak > 0 ? `${weekStreak} нед. подряд по ${WEEKLY_GOAL}+` : `Цель недели: ${WEEKLY_GOAL} трен.`;
 
   return `
     <div class="streak-block">
       <div class="streak-head">
         <span class="streak-title">${ICONS.calendar}<span>Регулярность</span></span>
-        <span class="streak-stat">${streak > 0 ? `Серия: ${streak} дн.` : 'Начните серию сегодня'}</span>
+        <span class="streak-stat">${streakLabel}</span>
       </div>
       <div class="streak-grid-wrap">
         <div class="streak-grid">${columnsHtml}</div>
       </div>
-      <div class="streak-footer">${totalTrained} тренировок за ${weeks} недель</div>
+      <div class="streak-footer">${thisWeekCount}/${WEEKLY_GOAL} на этой неделе · ${totalTrained} тренировок за ${weeks} недель</div>
     </div>
   `;
 }
@@ -1167,6 +1220,55 @@ function escapeHtml(str) {
   return String(str).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
 
+// ---------- Тост с отменой действия ----------
+
+let undoToastTimeout = null;
+
+function showUndoToast(message, onUndo) {
+  const toast = document.getElementById('undo-toast');
+  const textEl = document.getElementById('undo-toast-text');
+  const btn = document.getElementById('undo-toast-btn');
+  if (!toast || !textEl || !btn) return;
+
+  clearTimeout(undoToastTimeout);
+  textEl.textContent = message;
+  toast.hidden = false;
+
+  const freshBtn = btn.cloneNode(true);
+  btn.parentNode.replaceChild(freshBtn, btn);
+  freshBtn.addEventListener('click', () => {
+    clearTimeout(undoToastTimeout);
+    toast.hidden = true;
+    onUndo();
+  });
+
+  undoToastTimeout = setTimeout(() => {
+    toast.hidden = true;
+  }, 6000);
+}
+
+// ---------- Удаление упражнения с возможностью отмены ----------
+
+function deleteExerciseWithUndo(id) {
+  const exercise = state.exercises.find(e => e.id === id);
+  if (!exercise) return;
+  const removedEntries = state.entries.filter(e => e.exerciseId === id);
+
+  state.exercises = state.exercises.filter(e => e.id !== id);
+  state.entries = state.entries.filter(e => e.exerciseId !== id);
+  saveExercises();
+  saveEntries();
+  renderLibraryList();
+
+  showUndoToast(`Упражнение «${exercise.name}» удалено`, () => {
+    state.exercises.push(exercise);
+    state.entries.push(...removedEntries);
+    saveExercises();
+    saveEntries();
+    render();
+  });
+}
+
 // ---------- Init ----------
 
 // ---------- Калькулятор блинов ----------
@@ -1322,6 +1424,14 @@ function init() {
   });
   render();
   setInterval(tickTimers, 1000);
+
+  const globalStatusBar = document.getElementById('global-status');
+  if (globalStatusBar) {
+    globalStatusBar.addEventListener('click', () => {
+      closeToolsModal();
+      switchTab('log');
+    });
+  }
 
   const toolsBtn = document.getElementById('tools-btn');
   if (toolsBtn) toolsBtn.addEventListener('click', openToolsModal);

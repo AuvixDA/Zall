@@ -15,24 +15,37 @@
   <div class="bg-texture" aria-hidden="true"></div>
   <div class="bg-glow" aria-hidden="true"></div>
 
-  <header class="app-header">
-    <div class="header-inner">
-      <svg class="header-icon" viewBox="0 0 64 24" fill="none">
-        <rect x="1" y="6" width="6" height="12" rx="1.5" fill="currentColor"/>
-        <rect x="8" y="3" width="4" height="18" rx="1.5" fill="currentColor"/>
-        <rect x="13" y="10" width="38" height="4" rx="2" fill="currentColor"/>
-        <rect x="52" y="3" width="4" height="18" rx="1.5" fill="currentColor"/>
-        <rect x="57" y="6" width="6" height="12" rx="1.5" fill="currentColor"/>
-      </svg>
-      <h1>Трекер тренировок</h1>
-      <button class="header-tools-btn" id="tools-btn" aria-label="Данные и инструменты">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="12" cy="12" r="3"/>
-          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15 1.65 1.65 0 0 0 3.09 14H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-        </svg>
-      </button>
+  <div class="app-top">
+    <div id="global-status" class="global-status" hidden>
+      <span class="global-status-item" id="global-session-item" hidden>
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="8"/><line x1="12" y1="13" x2="12" y2="9"/><line x1="12" y1="13" x2="15" y2="14.5"/><line x1="9" y1="2" x2="15" y2="2"/><line x1="12" y1="2" x2="12" y2="4.5"/></svg>
+        <span id="global-session-time">00:00</span>
+      </span>
+      <span class="global-status-item rest" id="global-rest-item" hidden>
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12"/><path d="M6 21h12"/><path d="M6 3c0 5 5 6 6 9-1 3-6 4-6 9"/><path d="M18 3c0 5-5 6-6 9 1 3 6 4 6 9"/></svg>
+        <span id="global-rest-time">00:00</span>
+      </span>
     </div>
-  </header>
+
+    <header class="app-header">
+      <div class="header-inner">
+        <svg class="header-icon" viewBox="0 0 64 24" fill="none">
+          <rect x="1" y="6" width="6" height="12" rx="1.5" fill="currentColor"/>
+          <rect x="8" y="3" width="4" height="18" rx="1.5" fill="currentColor"/>
+          <rect x="13" y="10" width="38" height="4" rx="2" fill="currentColor"/>
+          <rect x="52" y="3" width="4" height="18" rx="1.5" fill="currentColor"/>
+          <rect x="57" y="6" width="6" height="12" rx="1.5" fill="currentColor"/>
+        </svg>
+        <h1>Трекер тренировок</h1>
+        <button class="header-tools-btn" id="tools-btn" aria-label="Данные и инструменты">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15 1.65 1.65 0 0 0 3.09 14H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+          </svg>
+        </button>
+      </div>
+    </header>
+  </div>
 
   <div class="modal-overlay" id="tools-modal" hidden>
     <div class="modal-sheet">
@@ -136,6 +149,11 @@
       <span>Аналитика</span>
     </button>
   </nav>
+
+  <div id="undo-toast" class="undo-toast" hidden>
+    <span id="undo-toast-text"></span>
+    <button id="undo-toast-btn" class="undo-toast-btn">Отменить</button>
+  </div>
 
   <script src="app.js"></script>
 </body>
