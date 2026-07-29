@@ -997,6 +997,66 @@ function escapeHtml(str) {
 
 // ---------- Init ----------
 
+// ---------- Данные и инструменты (модальное окно) ----------
+
+function openToolsModal() {
+  const modal = document.getElementById('tools-modal');
+  if (modal) modal.hidden = false;
+}
+
+function closeToolsModal() {
+  const modal = document.getElementById('tools-modal');
+  if (modal) modal.hidden = true;
+}
+
+function exportData() {
+  const payload = {
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    exercises: state.exercises,
+    entries: state.entries,
+    sessions: state.sessions
+  };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `workout-backup-${todayISO()}.json`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+function importDataFromFile(file) {
+  const reader = new FileReader();
+  reader.onload = () => {
+    let data;
+    try {
+      data = JSON.parse(reader.result);
+    } catch {
+      alert('Файл повреждён или это не JSON.');
+      return;
+    }
+    if (!data || !Array.isArray(data.exercises) || !Array.isArray(data.entries)) {
+      alert('Неверный формат файла.');
+      return;
+    }
+    if (!confirm('Импорт заменит все текущие данные (упражнения, история, тренировки). Продолжить?')) return;
+
+    state.exercises = data.exercises;
+    state.entries = data.entries;
+    state.sessions = Array.isArray(data.sessions) ? data.sessions : [];
+    saveExercises();
+    saveEntries();
+    saveSessions();
+    closeToolsModal();
+    render();
+    alert('Данные успешно импортированы.');
+  };
+  reader.readAsText(file);
+}
+
 function init() {
   loadState();
   document.querySelectorAll('.nav-btn').forEach(btn => {
@@ -1004,6 +1064,33 @@ function init() {
   });
   render();
   setInterval(tickTimers, 1000);
+
+  const toolsBtn = document.getElementById('tools-btn');
+  if (toolsBtn) toolsBtn.addEventListener('click', openToolsModal);
+
+  const toolsCloseBtn = document.getElementById('tools-close-btn');
+  if (toolsCloseBtn) toolsCloseBtn.addEventListener('click', closeToolsModal);
+
+  const toolsModal = document.getElementById('tools-modal');
+  if (toolsModal) {
+    toolsModal.addEventListener('click', (e) => {
+      if (e.target === toolsModal) closeToolsModal();
+    });
+  }
+
+  const exportBtn = document.getElementById('export-data-btn');
+  if (exportBtn) exportBtn.addEventListener('click', exportData);
+
+  const importBtn = document.getElementById('import-data-btn');
+  const importInput = document.getElementById('import-file-input');
+  if (importBtn && importInput) {
+    importBtn.addEventListener('click', () => importInput.click());
+    importInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file) importDataFromFile(file);
+      e.target.value = '';
+    });
+  }
 
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('sw.js').catch(() => {});

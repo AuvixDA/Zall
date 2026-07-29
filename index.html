@@ -29,8 +29,31 @@
         <rect x="57" y="6" width="6" height="12" rx="1.5" fill="currentColor"/>
       </svg>
       <h1>Трекер тренировок</h1>
+      <button class="header-tools-btn" id="tools-btn" aria-label="Данные и инструменты">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15 1.65 1.65 0 0 0 3.09 14H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+        </svg>
+      </button>
     </div>
   </header>
+
+  <div class="modal-overlay" id="tools-modal" hidden>
+    <div class="modal-sheet">
+      <div class="modal-head">
+        <h2>Данные и инструменты</h2>
+        <button class="icon-btn" id="tools-close-btn" aria-label="Закрыть">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg>
+        </button>
+      </div>
+
+      <div class="section-title">Резервная копия</div>
+      <p class="modal-hint">Все данные хранятся только в этом браузере. Сохраните файл, чтобы не потерять историю при очистке кэша или смене устройства.</p>
+      <button class="btn-secondary" id="export-data-btn">Экспортировать в файл</button>
+      <button class="btn-secondary" id="import-data-btn">Импортировать из файла</button>
+      <input type="file" id="import-file-input" accept="application/json" hidden>
+    </div>
+  </div>
 
   <main class="app-main">
     <section id="panel-log" class="tab-panel active"></section>
