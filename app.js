@@ -8,7 +8,8 @@ const STORAGE_KEYS = {
   session: 'workout:session',
   sessions: 'workout:sessions',
   plans: 'workout:plans',
-  activePlan: 'workout:activePlan'
+  activePlan: 'workout:activePlan',
+  barWeight: 'workout:barWeight'
 };
 
 const DEFAULT_REST_SECONDS = 90;
@@ -76,6 +77,7 @@ let state = {
   librarySearch: '',
   lastPR: null,
   plans: [],
+  barWeight: 20,
   activePlanId: null,
   expandedPlanExerciseId: null,
   planBuilder: { editingPlanId: null, name: '', exerciseIds: [] },
@@ -162,6 +164,9 @@ function loadState() {
     state.plans = JSON.parse(localStorage.getItem(STORAGE_KEYS.plans)) || [];
   } catch { state.plans = []; }
 
+  const storedBarWeight = parseFloat(localStorage.getItem(STORAGE_KEYS.barWeight));
+  state.barWeight = isNaN(storedBarWeight) ? 20 : storedBarWeight;
+
   state.activePlanId = localStorage.getItem(STORAGE_KEYS.activePlan) || null;
   if (state.activePlanId && !state.plans.find(p => p.id === state.activePlanId)) {
     state.activePlanId = null; // план мог быть удалён — не оставляем висячую ссылку
@@ -190,6 +195,10 @@ function saveSessions() {
 
 function savePlans() {
   localStorage.setItem(STORAGE_KEYS.plans, JSON.stringify(state.plans));
+}
+
+function saveBarWeight() {
+  localStorage.setItem(STORAGE_KEYS.barWeight, String(state.barWeight));
 }
 
 function saveActivePlanId() {
@@ -594,6 +603,7 @@ function attachExercisePickerListeners(panel) {
   const renderFields = () => {
     const ex = getExercise(exSelect.value);
     document.getElementById('log-fields').innerHTML = ex ? setFieldsHtml(ex.category) : '';
+    attachPlateHintListener('log-fields');
   };
   if (exSelect) {
     exSelect.addEventListener('change', () => {
@@ -739,6 +749,8 @@ function attachPlanGuidedListeners(panel) {
       renderLog();
     });
   });
+
+  attachPlateHintListener('plan-fields');
 
   const planAddSetBtn = document.getElementById('plan-add-set-btn');
   if (planAddSetBtn) {
@@ -901,12 +913,54 @@ function setFieldsHtml(category) {
   const labels = {
     weight: 'Вес, кг', reps: 'Повторы', duration: 'Время, мин', distance: 'Дистанция, км'
   };
-  return fields.map(f => `
+  const fieldsHtml = fields.map(f => `
     <div class="set-field">
       <label>${labels[f]}</label>
       <input type="number" inputmode="decimal" step="0.1" min="0" data-field="${f}" placeholder="${labels[f]}">
     </div>
   `).join('');
+  const hintHtml = fields.includes('weight') ? '<div class="plate-inline-hint" data-plate-inline-hint hidden></div>' : '';
+  return fieldsHtml + hintHtml;
+}
+
+function updateInlinePlateHint(container) {
+  const weightInput = container.querySelector('[data-field="weight"]');
+  const hintEl = container.querySelector('[data-plate-inline-hint]');
+  if (!weightInput || !hintEl) return;
+
+  const weight = parseFloat(weightInput.value);
+  const bar = state.barWeight || 20;
+  if (isNaN(weight) || weight <= bar) {
+    hintEl.hidden = true;
+    hintEl.innerHTML = '';
+    return;
+  }
+
+  const perSide = (weight - bar) / 2;
+  const { plates, remainder } = calculatePlates(perSide);
+  if (!plates.length) {
+    hintEl.hidden = true;
+    hintEl.innerHTML = '';
+    return;
+  }
+
+  const chipsHtml = plates.map(p => `
+    <span class="plate-chip-mini" style="border-color:${PLATE_COLORS[p.size] || '#9ca3af'}">
+      <span class="plate-dot" style="background:${PLATE_COLORS[p.size] || '#9ca3af'}"></span>${p.size}×${p.count}
+    </span>
+  `).join('');
+
+  hintEl.hidden = false;
+  hintEl.innerHTML = `${chipsHtml}${remainder > 0.01 ? `<span class="plate-remainder">+${remainder.toFixed(2)} кг</span>` : ''}`;
+}
+
+function attachPlateHintListener(containerId) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  const weightInput = container.querySelector('[data-field="weight"]');
+  if (!weightInput) return;
+  updateInlinePlateHint(container);
+  weightInput.addEventListener('input', () => updateInlinePlateHint(container));
 }
 
 function readSetFields(category, containerId = 'log-fields') {
@@ -1872,8 +1926,16 @@ function init() {
   const plateTarget = document.getElementById('plate-target');
   const plateBar = document.getElementById('plate-bar');
   if (plateTarget && plateBar) {
+    plateBar.value = state.barWeight;
     plateTarget.addEventListener('input', renderPlateResult);
-    plateBar.addEventListener('input', renderPlateResult);
+    plateBar.addEventListener('input', () => {
+      const val = parseFloat(plateBar.value);
+      if (!isNaN(val) && val >= 0) {
+        state.barWeight = val;
+        saveBarWeight();
+      }
+      renderPlateResult();
+    });
   }
 
   const ormWeight = document.getElementById('orm-weight');

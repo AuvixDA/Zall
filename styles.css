@@ -295,6 +295,35 @@ body {
   flex-shrink: 0;
 }
 
+.plate-inline-hint {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+.plate-inline-hint[hidden] { display: none; }
+
+.plate-chip-mini {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 8px;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: var(--surface-2);
+}
+
+.plate-remainder {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
 /* ---------- Layout ---------- */
 
 .app-main {
