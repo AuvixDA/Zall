@@ -15,6 +15,23 @@
   <div class="bg-texture" aria-hidden="true"></div>
   <div class="bg-glow" aria-hidden="true"></div>
 
+  <div class="welcome-overlay" id="welcome-overlay" hidden>
+    <div class="welcome-card">
+      <svg class="welcome-icon" viewBox="0 0 64 24" fill="none">
+        <rect x="1" y="6" width="6" height="12" rx="1.5" fill="currentColor"/>
+        <rect x="8" y="3" width="4" height="18" rx="1.5" fill="currentColor"/>
+        <rect x="13" y="10" width="38" height="4" rx="2" fill="currentColor"/>
+        <rect x="52" y="3" width="4" height="18" rx="1.5" fill="currentColor"/>
+        <rect x="57" y="6" width="6" height="12" rx="1.5" fill="currentColor"/>
+      </svg>
+      <h2>Добро пожаловать!</h2>
+      <p class="welcome-text">Чтобы подобрать подходящий набор упражнений для старта, подскажи, для кого этот трекер:</p>
+      <button class="btn-primary welcome-choice-btn" id="welcome-male-btn">Мужчина</button>
+      <button class="btn-primary welcome-choice-btn" id="welcome-female-btn">Девушка</button>
+      <p class="welcome-footnote">Список всегда можно дополнить вручную на вкладке «Упражнения».</p>
+    </div>
+  </div>
+
   <div class="app-top">
     <div id="global-status" class="global-status" hidden>
       <span class="global-status-item" id="global-session-item" hidden>
@@ -59,6 +76,11 @@
       <div class="section-title">Приложение для Android</div>
       <p class="modal-hint">Установите APK, чтобы открывать трекер как обычное приложение, без браузера.</p>
       <a class="btn-secondary" href="https://github.com/AuvixDA/Zall/releases/download/android-latest/workout-tracker.apk" id="download-apk-link">Скачать APK</a>
+
+      <div class="section-title">Набор упражнений по умолчанию</div>
+      <p class="modal-hint">Добавит недостающие упражнения из выбранного набора в библиотеку. Уже добавленные упражнения не дублируются, ничего не удаляется.</p>
+      <button class="btn-secondary" id="add-male-preset-btn">Добавить мужской набор</button>
+      <button class="btn-secondary" id="add-female-preset-btn">Добавить женский набор</button>
 
       <div class="section-title">Резервная копия</div>
       <p class="modal-hint">Все данные хранятся только в этом браузере. Сохраните файл, чтобы не потерять историю при очистке кэша или смене устройства.</p>

@@ -10,7 +10,8 @@ const STORAGE_KEYS = {
   plans: 'workout:plans',
   activePlan: 'workout:activePlan',
   barWeight: 'workout:barWeight',
-  bodyweight: 'workout:bodyweight'
+  bodyweight: 'workout:bodyweight',
+  gender: 'workout:gender'
 };
 
 const DEFAULT_REST_SECONDS = 90;
@@ -52,7 +53,7 @@ const FIELD_CONFIG = {
   speed: ['distance', 'duration']
 };
 
-const DEFAULT_EXERCISES = [
+const DEFAULT_EXERCISES_MALE = [
   { name: 'Жим лёжа', category: 'strength' },
   { name: 'Присед со штангой', category: 'strength' },
   { name: 'Становая тяга', category: 'strength' },
@@ -64,6 +65,23 @@ const DEFAULT_EXERCISES = [
   { name: 'Гребной тренажёр', category: 'endurance' },
   { name: 'Спринт на дорожке', category: 'speed' }
 ];
+
+const DEFAULT_EXERCISES_FEMALE = [
+  { name: 'Присед со штангой', category: 'strength' },
+  { name: 'Румынская тяга', category: 'strength' },
+  { name: 'Ягодичный мост', category: 'strength' },
+  { name: 'Выпады с гантелями', category: 'strength' },
+  { name: 'Отведение ноги в тренажёре', category: 'strength' },
+  { name: 'Гиперэкстензия', category: 'strength' },
+  { name: 'Беговая дорожка (длительно)', category: 'endurance' },
+  { name: 'Велотренажёр', category: 'endurance' },
+  { name: 'Гребной тренажёр', category: 'endurance' },
+  { name: 'Спринт на дорожке', category: 'speed' }
+];
+
+function defaultExercisesFor(gender) {
+  return gender === 'female' ? DEFAULT_EXERCISES_FEMALE : DEFAULT_EXERCISES_MALE;
+}
 
 let state = {
   exercises: [],
@@ -86,7 +104,8 @@ let state = {
   expandedPlanExerciseId: null,
   planBuilder: { editingPlanId: null, name: '', exerciseIds: [] },
   showPlanPicker: false,
-  showPlanExtra: false
+  showPlanExtra: false,
+  needsOnboarding: false
 };
 
 let audioCtx = null;
@@ -143,11 +162,7 @@ function loadState() {
     state.entries = JSON.parse(localStorage.getItem(STORAGE_KEYS.entries)) || [];
   } catch { state.entries = []; }
 
-  if (!localStorage.getItem(STORAGE_KEYS.seeded) && state.exercises.length === 0) {
-    state.exercises = DEFAULT_EXERCISES.map(e => ({ id: uid(), ...e }));
-    localStorage.setItem(STORAGE_KEYS.seeded, '1');
-    saveExercises();
-  }
+  state.needsOnboarding = !localStorage.getItem(STORAGE_KEYS.seeded) && state.exercises.length === 0;
 
   try {
     state.restTimer = JSON.parse(localStorage.getItem(STORAGE_KEYS.restTimer));
@@ -183,6 +198,26 @@ function loadState() {
 
 function saveExercises() {
   localStorage.setItem(STORAGE_KEYS.exercises, JSON.stringify(state.exercises));
+}
+
+function seedDefaultExercises(gender) {
+  state.exercises = defaultExercisesFor(gender).map(e => ({ id: uid(), ...e }));
+  localStorage.setItem(STORAGE_KEYS.seeded, '1');
+  localStorage.setItem(STORAGE_KEYS.gender, gender);
+  saveExercises();
+}
+
+function addMissingDefaultExercises(gender) {
+  const existingNames = new Set(state.exercises.map(e => e.name));
+  let added = 0;
+  defaultExercisesFor(gender).forEach(e => {
+    if (!existingNames.has(e.name)) {
+      state.exercises.push({ id: uid(), ...e });
+      added++;
+    }
+  });
+  if (added > 0) saveExercises();
+  return added;
 }
 
 function saveEntries() {
@@ -2091,6 +2126,21 @@ function init() {
   render();
   setInterval(tickTimers, 1000);
 
+  if (state.needsOnboarding) {
+    const overlay = document.getElementById('welcome-overlay');
+    if (overlay) {
+      overlay.hidden = false;
+      const finishOnboarding = (gender) => {
+        seedDefaultExercises(gender);
+        state.needsOnboarding = false;
+        overlay.hidden = true;
+        render();
+      };
+      document.getElementById('welcome-male-btn').addEventListener('click', () => finishOnboarding('male'));
+      document.getElementById('welcome-female-btn').addEventListener('click', () => finishOnboarding('female'));
+    }
+  }
+
   const globalStatusBar = document.getElementById('global-status');
   if (globalStatusBar) {
     globalStatusBar.addEventListener('click', () => {
@@ -2109,6 +2159,24 @@ function init() {
   if (toolsModal) {
     toolsModal.addEventListener('click', (e) => {
       if (e.target === toolsModal) closeToolsModal();
+    });
+  }
+
+  const addMalePresetBtn = document.getElementById('add-male-preset-btn');
+  if (addMalePresetBtn) {
+    addMalePresetBtn.addEventListener('click', () => {
+      const added = addMissingDefaultExercises('male');
+      if (state.tab === 'library') renderLibraryList();
+      alert(added > 0 ? `Добавлено упражнений: ${added}` : 'Все упражнения из мужского набора уже есть в библиотеке.');
+    });
+  }
+
+  const addFemalePresetBtn = document.getElementById('add-female-preset-btn');
+  if (addFemalePresetBtn) {
+    addFemalePresetBtn.addEventListener('click', () => {
+      const added = addMissingDefaultExercises('female');
+      if (state.tab === 'library') renderLibraryList();
+      alert(added > 0 ? `Добавлено упражнений: ${added}` : 'Все упражнения из женского набора уже есть в библиотеке.');
     });
   }
 

@@ -193,6 +193,60 @@ body {
 
 /* ---------- Модальное окно ---------- */
 
+.welcome-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  background: rgba(8, 5, 3, 0.82);
+  backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.welcome-overlay[hidden] { display: none; }
+
+.welcome-card {
+  width: 100%;
+  max-width: 400px;
+  background: var(--surface-solid);
+  border: 1px solid var(--border-strong);
+  border-radius: 20px;
+  padding: 28px 22px;
+  text-align: center;
+  animation: sheetUp 0.25s ease;
+}
+
+.welcome-icon {
+  width: 56px;
+  height: 21px;
+  color: var(--accent);
+  margin: 0 auto 18px;
+  display: block;
+}
+
+.welcome-card h2 {
+  font-size: 20px;
+  margin: 0 0 10px;
+}
+
+.welcome-text {
+  font-size: 14px;
+  color: var(--text-muted);
+  margin-bottom: 20px;
+  line-height: 1.5;
+}
+
+.welcome-choice-btn { margin-top: 10px; }
+.welcome-choice-btn:first-of-type { margin-top: 0; }
+
+.welcome-footnote {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin: 16px 0 0;
+}
+
 .modal-overlay {
   position: fixed;
   inset: 0;
@@ -389,6 +443,23 @@ select {
 input:focus, select:focus {
   border-color: var(--accent);
   box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.15);
+}
+
+input[type="date"] {
+  text-align: center;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator {
+  display: none;
+}
+
+input[type="date"]::-webkit-datetime-edit {
+  width: 100%;
+  text-align: center;
+}
+
+input[type="date"]::-webkit-inner-spin-button {
+  display: none;
 }
 
 .set-fields {
