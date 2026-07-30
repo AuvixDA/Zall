@@ -9,7 +9,8 @@ const STORAGE_KEYS = {
   sessions: 'workout:sessions',
   plans: 'workout:plans',
   activePlan: 'workout:activePlan',
-  barWeight: 'workout:barWeight'
+  barWeight: 'workout:barWeight',
+  bodyweight: 'workout:bodyweight'
 };
 
 const DEFAULT_REST_SECONDS = 90;
@@ -78,6 +79,7 @@ let state = {
   lastPR: null,
   plans: [],
   barWeight: 20,
+  bodyweightLogs: [],
   activePlanId: null,
   expandedPlanExerciseId: null,
   planBuilder: { editingPlanId: null, name: '', exerciseIds: [] },
@@ -167,6 +169,10 @@ function loadState() {
   const storedBarWeight = parseFloat(localStorage.getItem(STORAGE_KEYS.barWeight));
   state.barWeight = isNaN(storedBarWeight) ? 20 : storedBarWeight;
 
+  try {
+    state.bodyweightLogs = JSON.parse(localStorage.getItem(STORAGE_KEYS.bodyweight)) || [];
+  } catch { state.bodyweightLogs = []; }
+
   state.activePlanId = localStorage.getItem(STORAGE_KEYS.activePlan) || null;
   if (state.activePlanId && !state.plans.find(p => p.id === state.activePlanId)) {
     state.activePlanId = null; // план мог быть удалён — не оставляем висячую ссылку
@@ -199,6 +205,25 @@ function savePlans() {
 
 function saveBarWeight() {
   localStorage.setItem(STORAGE_KEYS.barWeight, String(state.barWeight));
+}
+
+function saveBodyweightLogs() {
+  localStorage.setItem(STORAGE_KEYS.bodyweight, JSON.stringify(state.bodyweightLogs));
+}
+
+function upsertBodyweightLog(date, weight) {
+  const existing = state.bodyweightLogs.find(l => l.date === date);
+  if (existing) {
+    existing.weight = weight;
+  } else {
+    state.bodyweightLogs.push({ date, weight });
+  }
+  saveBodyweightLogs();
+}
+
+function getLatestBodyweight() {
+  if (!state.bodyweightLogs.length) return null;
+  return [...state.bodyweightLogs].sort((a, b) => b.date.localeCompare(a.date))[0];
 }
 
 function saveActivePlanId() {
@@ -1404,9 +1429,12 @@ function renderDaySummaryHtml(sessions) {
 
 function renderAnalytics() {
   const panel = document.getElementById('panel-analytics');
+  const startDate = daysAgoISO(state.analyticsPeriod);
+  const endDate = todayISO();
 
   panel.innerHTML = `
     ${renderStreakCalendar()}
+    ${renderBodyweightSection(startDate, endDate)}
     ${renderRecordsSection()}
     <div class="card">
       <label class="field-label">Период</label>
@@ -1426,11 +1454,79 @@ function renderAnalytics() {
     });
   });
 
-  const startDate = daysAgoISO(state.analyticsPeriod);
-  const endDate = todayISO();
-
+  attachBodyweightListeners();
   renderSummaryCards(startDate, endDate);
   renderExerciseCharts(startDate, endDate);
+}
+
+// ---------- Вес тела ----------
+
+function bodyweightTrend(startDate, endDate) {
+  const points = state.bodyweightLogs
+    .filter(l => l.date >= startDate && l.date <= endDate)
+    .sort((a, b) => a.date.localeCompare(b.date))
+    .map(l => ({ date: l.date, value: l.weight }));
+
+  if (points.length === 0) return null;
+
+  const chunk = Math.max(1, Math.floor(points.length / 3));
+  const startAvg = average(points.slice(0, chunk).map(p => p.value));
+  const endAvg = average(points.slice(-chunk).map(p => p.value));
+
+  return { points, startAvg, endAvg, hasEnough: points.length >= 2 };
+}
+
+function renderBodyweightSection(startDate, endDate) {
+  const todayLog = state.bodyweightLogs.find(l => l.date === todayISO());
+  const latest = getLatestBodyweight();
+  const trend = bodyweightTrend(startDate, endDate);
+
+  const deltaBadge = trend && trend.hasEnough
+    ? (() => {
+        const delta = trend.endAvg - trend.startAvg;
+        const sign = delta >= 0 ? '+' : '';
+        return `<span class="pct-badge neutral">${delta >= 0 ? ICONS.up : ICONS.down}<span>${sign}${delta.toFixed(1)} кг</span></span>`;
+      })()
+    : '';
+
+  const chartHtml = trend
+    ? renderLineChartSVG(trend.points, '#c9793f')
+    : '<p class="empty-hint">Отмечайте вес регулярно, чтобы увидеть график.</p>';
+
+  const chartFooter = trend
+    ? `<div class="chart-footer">
+        <span>${formatDateHuman(trend.points[0].date)}: ${trend.points[0].value} кг</span>
+        <span>${formatDateHuman(trend.points[trend.points.length - 1].date)}: ${trend.points[trend.points.length - 1].value} кг</span>
+      </div>`
+    : '';
+
+  return `
+    <div class="card bodyweight-card">
+      <div class="entry-head">
+        <strong>Вес тела</strong>
+        ${deltaBadge}
+      </div>
+      <div class="bodyweight-input-row">
+        <input type="number" id="bodyweight-input" inputmode="decimal" step="0.1" min="0" placeholder="Вес, кг" value="${todayLog ? todayLog.weight : ''}">
+        <button class="btn-secondary bodyweight-save-btn" id="bodyweight-save-btn">${ICONS.check}<span>Сохранить</span></button>
+      </div>
+      ${latest ? `<div class="last-hint">Последний раз: ${formatDateHuman(latest.date)} — ${latest.weight} кг</div>` : ''}
+      ${chartHtml}
+      ${chartFooter}
+    </div>
+  `;
+}
+
+function attachBodyweightListeners() {
+  const saveBtn = document.getElementById('bodyweight-save-btn');
+  const input = document.getElementById('bodyweight-input');
+  if (!saveBtn || !input) return;
+  saveBtn.addEventListener('click', () => {
+    const weight = parseFloat(input.value);
+    if (isNaN(weight) || weight <= 0) return;
+    upsertBodyweightLog(todayISO(), weight);
+    renderAnalytics();
+  });
 }
 
 function getTrainedDatesSet() {
@@ -1525,14 +1621,20 @@ function renderRecordsSection() {
 
   if (rows.length === 0) return '';
 
+  const latestBW = getLatestBodyweight();
+
   return `
     <div class="section-title">${ICONS.trophy}<span>Личные рекорды</span></div>
     ${rows.map(r => {
       const meta = CATEGORY_META[r.ex.category];
+      const ratio = (latestBW && latestBW.weight > 0 && r.ex.category === 'strength')
+        ? `<span class="record-ratio">${(r.best / latestBW.weight).toFixed(2)}× веса</span>`
+        : '';
       return `
         <div class="record-row">
           <span class="record-icon" style="color:${meta.color}">${meta.icon}</span>
           <span class="record-name">${escapeHtml(r.ex.name)}</span>
+          ${ratio}
           <span class="record-value">${formatMetric(r.ex.category, r.best)}</span>
         </div>
       `;
@@ -1834,7 +1936,8 @@ function exportData() {
     exercises: state.exercises,
     entries: state.entries,
     sessions: state.sessions,
-    plans: state.plans
+    plans: state.plans,
+    bodyweightLogs: state.bodyweightLogs
   };
   const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
@@ -1867,6 +1970,7 @@ function importDataFromFile(file) {
     state.entries = data.entries;
     state.sessions = Array.isArray(data.sessions) ? data.sessions : [];
     state.plans = Array.isArray(data.plans) ? data.plans : [];
+    state.bodyweightLogs = Array.isArray(data.bodyweightLogs) ? data.bodyweightLogs : [];
     if (state.activePlanId && !state.plans.find(p => p.id === state.activePlanId)) {
       exitPlan();
     }
@@ -1874,6 +1978,7 @@ function importDataFromFile(file) {
     saveEntries();
     saveSessions();
     savePlans();
+    saveBodyweightLogs();
     closeToolsModal();
     render();
     alert('Данные успешно импортированы.');
