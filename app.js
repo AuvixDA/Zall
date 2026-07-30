@@ -1385,7 +1385,7 @@ function getTrainedDatesSet() {
   return set;
 }
 
-const WEEKLY_GOAL = 3; // сколько тренировок в неделю считаем "выполненной нормой" для серии
+const WEEKLY_GOAL = 1; // минимум тренировок в неделю, чтобы неделя засчиталась в серию
 
 function getWeekStart(date) {
   const d = new Date(date);
@@ -1440,11 +1440,13 @@ function renderStreakCalendar() {
   }
 
   // "Серия" считается по неделям, а не по подряд идущим календарным дням —
-  // так честнее для расписания 3-4 тренировки в неделю с днями отдыха между ними.
+  // неделя засчитывается в серию, если в ней есть хотя бы одна тренировка (WEEKLY_GOAL).
+  // Текущая неделя добавляется в серию сразу, как только цель выполнена (не дожидаясь
+  // конца недели) — с целью "хотя бы 1 раз" результат уже не может измениться назад.
   const thisWeekStart = getWeekStart(today);
   const thisWeekCount = countTrainedDaysInWeek(trainedDates, thisWeekStart, today);
 
-  let weekStreak = 0;
+  let weekStreak = thisWeekCount >= WEEKLY_GOAL ? 1 : 0;
   const cursor = new Date(thisWeekStart);
   cursor.setDate(cursor.getDate() - 7);
   while (countTrainedDaysInWeek(trainedDates, cursor, today) >= WEEKLY_GOAL) {
@@ -1453,7 +1455,7 @@ function renderStreakCalendar() {
   }
 
   const totalTrained = days.filter(d => d <= today && trainedDates.has(toISO(d))).length;
-  const streakLabel = weekStreak > 0 ? `${weekStreak} нед. подряд по ${WEEKLY_GOAL}+` : `Цель недели: ${WEEKLY_GOAL} трен.`;
+  const streakLabel = weekStreak > 0 ? `${weekStreak} нед. подряд` : 'Начните серию на этой неделе';
 
   return `
     <div class="streak-block">
@@ -1464,7 +1466,7 @@ function renderStreakCalendar() {
       <div class="streak-grid-wrap">
         <div class="streak-grid">${columnsHtml}</div>
       </div>
-      <div class="streak-footer">${thisWeekCount}/${WEEKLY_GOAL} на этой неделе · ${totalTrained} тренировок за ${weeks} недель</div>
+      <div class="streak-footer">${thisWeekCount} трен. на этой неделе · ${totalTrained} тренировок за ${weeks} недель</div>
     </div>
   `;
 }
