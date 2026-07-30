@@ -35,7 +35,9 @@ const ICONS = {
   trophy: '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8"/><path d="M12 17v4"/><path d="M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M7 5H4a3 3 0 0 0 3 4"/><path d="M17 5h3a3 3 0 0 1-3 4"/></svg>',
   calendar: '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><line x1="3" y1="9.5" x2="21" y2="9.5"/><line x1="8" y1="3" x2="8" y2="7"/><line x1="16" y1="3" x2="16" y2="7"/></svg>',
   plan: '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6h11"/><path d="M9 12h11"/><path d="M9 18h11"/><circle cx="4.5" cy="6" r="1.3" fill="currentColor" stroke="none"/><circle cx="4.5" cy="12" r="1.3" fill="currentColor" stroke="none"/><circle cx="4.5" cy="18" r="1.3" fill="currentColor" stroke="none"/></svg>',
-  play: '<svg class="icon" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>'
+  play: '<svg class="icon" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>',
+  drop: '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3s7 7.5 7 12a7 7 0 0 1-14 0c0-4.5 7-12 7-12z"/></svg>',
+  lightbulb: '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6"/><path d="M10 21h4"/><path d="M12 3a6 6 0 0 0-4 10.5c.6.55 1 1.4 1 2.2V16h6v-.3c0-.8.4-1.65 1-2.2A6 6 0 0 0 12 3z"/></svg>'
 };
 
 const CATEGORY_META = {
@@ -468,6 +470,7 @@ function render() {
   if (state.tab === 'library') renderLibrary();
   if (state.tab === 'history') renderHistory();
   if (state.tab === 'analytics') renderAnalytics();
+  if (state.tab === 'tips') renderTips();
 
   updateGlobalStatusBar();
 }
@@ -1915,6 +1918,99 @@ function renderOrmResult() {
     <div class="calc-big-value">${orm.toFixed(1)} кг</div>
     <div class="calc-hint">Расчётный одноповторный максимум (формула Эпли)</div>
   `;
+}
+
+// ---------- Советы ----------
+
+const GYM_TIPS = [
+  {
+    title: 'Жим штанги лёжа',
+    color: CATEGORY_META.strength.color,
+    items: [
+      'Кисти держите прямо над локтями, не заваливайте их назад — так меньше нагрузка на лучезапястный сустав.',
+      'Сведите и прижмите лопатки к скамье, сохраняйте естественный прогиб в пояснице (мостик) — это стабилизирует корпус и сокращает путь штанги.',
+      'Локти идут под углом примерно 45° к корпусу, а не разведены в стороны на 90° — так безопаснее для плечевых суставов.'
+    ]
+  },
+  {
+    title: 'Присед со штангой',
+    color: CATEGORY_META.strength.color,
+    items: [
+      'Колени двигаются в направлении носков и не заваливаются внутрь.',
+      'Смотрите перед собой, а не в потолок — так легче удерживать нейтральное положение шеи и спины.',
+      'Опускайтесь минимум до параллели бедра с полом, если позволяет подвижность суставов.'
+    ]
+  },
+  {
+    title: 'Становая тяга',
+    color: CATEGORY_META.strength.color,
+    items: [
+      'Гриф весь подход держите близко к голеням — так меньше плечо рычага и нагрузка на поясницу.',
+      'Спина прямая от старта до финиша, не круглите поясницу под весом.',
+      'Тяните за счёт разгибания ног и бёдер, а не рывком одной спиной.'
+    ]
+  },
+  {
+    title: 'Общие принципы',
+    color: '#7a97ac',
+    items: [
+      'Разминка 5–10 минут и разминочные подходы с лёгким весом перед рабочими.',
+      'Выдох на усилии — не задерживайте дыхание на весь подход.',
+      'Прибавляйте вес или повторы постепенно (2.5–5% или +1 повтор), а не рывками.',
+      'Отдых между рабочими подходами: 2–3 минуты для силовой работы, 60–90 секунд для лёгких и многоповторных.',
+      'Сон и достаточно белка в рационе — тоже часть тренировки: без восстановления результата не будет.'
+    ]
+  }
+];
+
+function renderWaterCalcCard() {
+  const latest = getLatestBodyweight();
+  const prefill = latest ? latest.weight : '';
+  return `
+    <div class="card water-calc-card">
+      <div class="entry-head">${ICONS.drop}<strong>Питьевой режим</strong></div>
+      <p class="modal-hint">Ориентир: около 35 мл воды на кг веса в сутки, плюс 500–750 мл на каждый час тренировки. Это общая рекомендация, не медицинская норма.</p>
+      <input type="number" id="water-weight-input" inputmode="decimal" step="0.1" min="0" placeholder="Вес, кг" value="${prefill}">
+      <div id="water-result" class="calc-result"></div>
+    </div>
+  `;
+}
+
+function updateWaterResult() {
+  const input = document.getElementById('water-weight-input');
+  const resultEl = document.getElementById('water-result');
+  if (!input || !resultEl) return;
+
+  const weight = parseFloat(input.value);
+  if (isNaN(weight) || weight <= 0) {
+    resultEl.innerHTML = '<p class="empty-hint">Введите вес</p>';
+    return;
+  }
+
+  const baseLiters = weight * 0.035;
+  resultEl.innerHTML = `
+    <div class="calc-big-value">${baseLiters.toFixed(1)} л</div>
+    <div class="calc-hint">Базовая норма в день без тренировки — в день тренировки прибавьте 0.5–0.75 л за каждый час</div>
+  `;
+}
+
+function renderTips() {
+  const panel = document.getElementById('panel-tips');
+  panel.innerHTML = `
+    ${renderWaterCalcCard()}
+    ${GYM_TIPS.map(section => `
+      <div class="card tip-card" style="border-top-color:${section.color}">
+        <div class="entry-head tip-card-head" style="color:${section.color}">${ICONS.lightbulb}<strong>${escapeHtml(section.title)}</strong></div>
+        <ul class="tip-list">
+          ${section.items.map(t => `<li>${escapeHtml(t)}</li>`).join('')}
+        </ul>
+      </div>
+    `).join('')}
+  `;
+
+  const waterInput = document.getElementById('water-weight-input');
+  if (waterInput) waterInput.addEventListener('input', updateWaterResult);
+  updateWaterResult();
 }
 
 // ---------- Данные и инструменты (модальное окно) ----------

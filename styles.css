@@ -1149,6 +1149,36 @@ input:focus, select:focus {
   padding: 0 16px;
 }
 
+.water-calc-card input {
+  margin-top: 10px;
+}
+
+.tip-card { border-top-width: 3px; border-top-style: solid; }
+
+.tip-card-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  font-size: 15px;
+}
+
+.tip-card-head .icon { width: 18px; height: 18px; flex-shrink: 0; }
+
+.tip-list {
+  margin: 0;
+  padding-left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tip-list li {
+  font-size: 14px;
+  color: var(--text);
+  line-height: 1.5;
+}
+
 /* ---------- Нижняя навигация: гриф штанги с блинами вместо вкладок ---------- */
 
 .bottom-nav {
