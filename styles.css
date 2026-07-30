@@ -719,81 +719,81 @@ input:focus, select:focus {
   color: var(--accent);
 }
 
-/* ---------- Календарь/стрик посещений ---------- */
+/* ---------- Очки серии + полоска последних 7 дней ---------- */
 
-.streak-block { margin-bottom: 8px; }
-
-.streak-head {
+.streak-block {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 14px;
-  gap: 10px;
+  gap: 12px;
+  margin-bottom: 20px;
 }
 
-.streak-title {
+.streak-points {
   display: flex;
-  align-items: center;
-  gap: 8px;
-  font-weight: 700;
-  font-size: 14px;
-  color: var(--text-muted);
+  align-items: baseline;
+  gap: 6px;
+  flex-shrink: 0;
 }
 
-.streak-title .icon {
-  width: 16px;
-  height: 16px;
+.streak-points .icon {
+  align-self: center;
+  width: 18px;
+  height: 18px;
   color: var(--accent);
 }
 
-.streak-stat {
-  font-size: 13px;
+.streak-points-value {
+  font-size: 26px;
   font-weight: 800;
   color: var(--accent);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.streak-points-label {
+  font-size: 11px;
+  color: var(--text-muted);
   white-space: nowrap;
 }
 
-.streak-grid-wrap {
-  overflow-x: auto;
-  padding-bottom: 2px;
-}
-
-.streak-grid {
+.streak-week-row {
   display: flex;
-  gap: 3px;
-  width: max-content;
+  gap: 8px;
 }
 
-.streak-col {
+.streak-day {
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  align-items: center;
+  gap: 4px;
 }
 
-.streak-cell {
-  width: 12px;
-  height: 12px;
-  border-radius: 3px;
+.streak-dot {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
   background: var(--surface-2);
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-strong);
 }
 
-.streak-cell.trained {
-  background: var(--accent);
-  border-color: var(--accent);
-  box-shadow: 0 0 5px rgba(var(--accent-rgb), 0.5);
+.streak-dot-trained {
+  background: var(--up);
+  border-color: var(--up);
+  box-shadow: 0 0 6px rgba(var(--up-rgb), 0.6);
 }
 
-.streak-cell.future {
-  background: transparent;
-  border-color: transparent;
+.streak-day-today .streak-dot {
+  box-shadow: 0 0 0 2px var(--bg), 0 0 0 3px rgba(var(--warm-rgb), 0.4);
 }
 
-.streak-footer {
-  font-size: 12px;
+.streak-day-today.streak-day .streak-dot.streak-dot-trained {
+  box-shadow: 0 0 0 2px var(--bg), 0 0 0 3px rgba(var(--warm-rgb), 0.4), 0 0 6px rgba(var(--up-rgb), 0.6);
+}
+
+.streak-day-label {
+  font-size: 9px;
   color: var(--text-muted);
-  margin-top: 12px;
-  text-align: right;
 }
 
 .section-title {

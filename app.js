@@ -1385,8 +1385,6 @@ function getTrainedDatesSet() {
   return set;
 }
 
-const WEEKLY_GOAL = 1; // минимум тренировок в неделю, чтобы неделя засчиталась в серию
-
 function getWeekStart(date) {
   const d = new Date(date);
   d.setHours(0, 0, 0, 0);
@@ -1406,67 +1404,60 @@ function countTrainedDaysInWeek(trainedDates, weekStart, today) {
   return count;
 }
 
+// Очки серии = сумма тренировок с последней полностью пропущенной недели.
+// Как только целая неделя проходит без единого визита, счёт обнуляется и начинается заново.
+function computeStreakPoints(trainedDates, today) {
+  const thisWeekStart = getWeekStart(today);
+  let points = countTrainedDaysInWeek(trainedDates, thisWeekStart, today);
+
+  const cursor = new Date(thisWeekStart);
+  cursor.setDate(cursor.getDate() - 7);
+  while (true) {
+    const weekCount = countTrainedDaysInWeek(trainedDates, cursor, today);
+    if (weekCount === 0) break;
+    points += weekCount;
+    cursor.setDate(cursor.getDate() - 7);
+  }
+  return points;
+}
+
+const WEEKDAY_LETTERS = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
+
 function renderStreakCalendar() {
   const trainedDates = getTrainedDatesSet();
-  const weeks = 10;
-
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  const dayOfWeek = (today.getDay() + 6) % 7; // 0=Пн ... 6=Вс
-  const weekEnd = new Date(today);
-  weekEnd.setDate(today.getDate() + (6 - dayOfWeek));
-  const startDate = new Date(weekEnd);
-  startDate.setDate(weekEnd.getDate() - weeks * 7 + 1);
+
+  const points = computeStreakPoints(trainedDates, today);
 
   const days = [];
-  for (let i = 0; i < weeks * 7; i++) {
-    const d = new Date(startDate);
-    d.setDate(startDate.getDate() + i);
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(today);
+    d.setDate(d.getDate() - i);
     days.push(d);
   }
 
-  let columnsHtml = '';
-  for (let w = 0; w < weeks; w++) {
-    let colCells = '';
-    for (let d = 0; d < 7; d++) {
-      const date = days[w * 7 + d];
-      const iso = toISO(date);
-      const isFuture = date > today;
-      const trained = trainedDates.has(iso);
-      const cls = isFuture ? 'streak-cell future' : (trained ? 'streak-cell trained' : 'streak-cell');
-      colCells += `<div class="${cls}" title="${iso}"></div>`;
-    }
-    columnsHtml += `<div class="streak-col">${colCells}</div>`;
-  }
-
-  // "Серия" считается по неделям, а не по подряд идущим календарным дням —
-  // неделя засчитывается в серию, если в ней есть хотя бы одна тренировка (WEEKLY_GOAL).
-  // Текущая неделя добавляется в серию сразу, как только цель выполнена (не дожидаясь
-  // конца недели) — с целью "хотя бы 1 раз" результат уже не может измениться назад.
-  const thisWeekStart = getWeekStart(today);
-  const thisWeekCount = countTrainedDaysInWeek(trainedDates, thisWeekStart, today);
-
-  let weekStreak = thisWeekCount >= WEEKLY_GOAL ? 1 : 0;
-  const cursor = new Date(thisWeekStart);
-  cursor.setDate(cursor.getDate() - 7);
-  while (countTrainedDaysInWeek(trainedDates, cursor, today) >= WEEKLY_GOAL) {
-    weekStreak++;
-    cursor.setDate(cursor.getDate() - 7);
-  }
-
-  const totalTrained = days.filter(d => d <= today && trainedDates.has(toISO(d))).length;
-  const streakLabel = weekStreak > 0 ? `${weekStreak} нед. подряд` : 'Начните серию на этой неделе';
+  const daysHtml = days.map(d => {
+    const iso = toISO(d);
+    const trained = trainedDates.has(iso);
+    const isToday = iso === toISO(today);
+    const dow = (d.getDay() + 6) % 7;
+    return `
+      <div class="streak-day ${isToday ? 'streak-day-today' : ''}">
+        <div class="streak-dot ${trained ? 'streak-dot-trained' : ''}"></div>
+        <span class="streak-day-label">${WEEKDAY_LETTERS[dow]}</span>
+      </div>
+    `;
+  }).join('');
 
   return `
     <div class="streak-block">
-      <div class="streak-head">
-        <span class="streak-title">${ICONS.calendar}<span>Регулярность</span></span>
-        <span class="streak-stat">${streakLabel}</span>
+      <div class="streak-points">
+        ${ICONS.trophy}
+        <span class="streak-points-value">${points}</span>
+        <span class="streak-points-label">очков серии</span>
       </div>
-      <div class="streak-grid-wrap">
-        <div class="streak-grid">${columnsHtml}</div>
-      </div>
-      <div class="streak-footer">${thisWeekCount} трен. на этой неделе · ${totalTrained} тренировок за ${weeks} недель</div>
+      <div class="streak-week-row">${daysHtml}</div>
     </div>
   `;
 }
