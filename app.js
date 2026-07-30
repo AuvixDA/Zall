@@ -305,6 +305,7 @@ function endSession() {
   saveSessions();
   state.session = null;
   saveSession();
+  skipRestTimer();
 
   if (state.activePlanId) exitPlan();
 }
