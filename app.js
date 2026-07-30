@@ -480,6 +480,7 @@ function switchTab(tab) {
   state.editingSet = null;
   state.lastPR = null;
   render();
+  window.scrollTo(0, 0);
 }
 
 // ---------- Личные рекорды ----------
