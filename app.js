@@ -282,6 +282,7 @@ function endSession() {
   const durationSec = Math.round((endedAt - state.session.startedAt) / 1000);
   const date = toISO(new Date(state.session.startedAt));
   const summary = computeSessionSummary(date);
+  const activePlan = state.activePlanId ? getPlan(state.activePlanId) : null;
   state.sessions.push({
     date,
     startedAt: state.session.startedAt,
@@ -289,7 +290,8 @@ function endSession() {
     durationSec,
     totalSets: summary.totalSets,
     totalVolume: summary.totalVolume,
-    exercisesCount: summary.exercisesCount
+    exercisesCount: summary.exercisesCount,
+    planName: activePlan ? activePlan.name : null
   });
   saveSessions();
   state.session = null;
@@ -853,7 +855,9 @@ function attachTimerCardListeners() {
 }
 
 function formatSessionSummary(session) {
-  const parts = [formatDuration(session.durationSec), `${session.totalSets || 0} подх.`];
+  const parts = [];
+  if (session.planName) parts.push(session.planName);
+  parts.push(formatDuration(session.durationSec), `${session.totalSets || 0} подх.`);
   if (session.totalVolume > 0) parts.push(`${Math.round(session.totalVolume)} кг`);
   parts.push(formatDateHuman(session.date));
   return parts.join(' · ');
@@ -1328,9 +1332,17 @@ function renderDaySummaryHtml(sessions) {
   const totalDuration = sessions.reduce((sum, s) => sum + s.durationSec, 0);
   const totalSets = sessions.reduce((sum, s) => sum + (s.totalSets || 0), 0);
   const totalVolume = sessions.reduce((sum, s) => sum + (s.totalVolume || 0), 0);
+  const planNames = [...new Set(sessions.map(s => s.planName).filter(Boolean))];
+
   const parts = [formatDuration(totalDuration), `${totalSets} подх.`];
   if (totalVolume > 0) parts.push(`${Math.round(totalVolume)} кг`);
-  return `<div class="day-summary">${ICONS.timer}<span>${parts.join(' · ')}</span></div>`;
+
+  return `
+    <div class="day-summary">
+      ${ICONS.timer}<span>${parts.join(' · ')}</span>
+      ${planNames.length ? `<span class="day-summary-plan">${ICONS.plan}<span>${escapeHtml(planNames.join(', '))}</span></span>` : ''}
+    </div>
+  `;
 }
 
 // ---------- Tab: Analytics (Аналитика) ----------
