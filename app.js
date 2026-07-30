@@ -1773,7 +1773,8 @@ function exportData() {
     exportedAt: new Date().toISOString(),
     exercises: state.exercises,
     entries: state.entries,
-    sessions: state.sessions
+    sessions: state.sessions,
+    plans: state.plans
   };
   const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
@@ -1805,9 +1806,14 @@ function importDataFromFile(file) {
     state.exercises = data.exercises;
     state.entries = data.entries;
     state.sessions = Array.isArray(data.sessions) ? data.sessions : [];
+    state.plans = Array.isArray(data.plans) ? data.plans : [];
+    if (state.activePlanId && !state.plans.find(p => p.id === state.activePlanId)) {
+      exitPlan();
+    }
     saveExercises();
     saveEntries();
     saveSessions();
+    savePlans();
     closeToolsModal();
     render();
     alert('Данные успешно импортированы.');
