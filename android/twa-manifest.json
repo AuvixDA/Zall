@@ -1,0 +1,42 @@
+{
+  "packageId": "com.auvixda.zall.twa",
+  "host": "auvixda.github.io",
+  "name": "Трекер тренировок",
+  "launcherName": "Тренировки",
+  "display": "standalone",
+  "themeColor": "#120e0b",
+  "themeColorDark": "#120e0b",
+  "navigationColor": "#120e0b",
+  "navigationColorDark": "#120e0b",
+  "navigationDividerColor": "#120e0b",
+  "navigationDividerColorDark": "#120e0b",
+  "backgroundColor": "#120e0b",
+  "enableNotifications": false,
+  "startUrl": "/Zall/index.html",
+  "iconUrl": "https://auvixda.github.io/Zall/icon-512.png",
+  "maskableIconUrl": "https://auvixda.github.io/Zall/icon-512-maskable.png",
+  "splashScreenFadeOutDuration": 300,
+  "signingKey": {
+    "path": "./android.keystore",
+    "alias": "workout-tracker"
+  },
+  "appVersionCode": 1,
+  "appVersion": "1.0.0",
+  "shortcuts": [],
+  "generatorApp": "bubblewrap-cli",
+  "webManifestUrl": "https://auvixda.github.io/Zall/manifest.json",
+  "fallbackType": "customtabs",
+  "features": {},
+  "alphaDependencies": {
+    "enabled": false
+  },
+  "enableSiteSettingsShortcut": true,
+  "isChromeOSOnly": false,
+  "isMetaQuest": false,
+  "fullScopeUrl": "https://auvixda.github.io/Zall/",
+  "minSdkVersion": 21,
+  "orientation": "portrait",
+  "fingerprints": [],
+  "additionalTrustedOrigins": [],
+  "retainedBundles": []
+}

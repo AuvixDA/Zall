@@ -1,4 +1,4 @@
-const CACHE_NAME = 'workout-tracker-v2';
+const CACHE_NAME = 'workout-tracker-v3';
 const ASSETS = [
   './',
   './index.html',
@@ -6,6 +6,9 @@ const ASSETS = [
   './app.js',
   './manifest.json',
   './icon.svg',
+  './icon-192.png',
+  './icon-512.png',
+  './icon-512-maskable.png',
   './gym-wall.jpg'
 ];
 
