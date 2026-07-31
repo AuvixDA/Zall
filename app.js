@@ -11,7 +11,9 @@ const STORAGE_KEYS = {
   activePlan: 'workout:activePlan',
   barWeight: 'workout:barWeight',
   bodyweight: 'workout:bodyweight',
-  gender: 'workout:gender'
+  gender: 'workout:gender',
+  height: 'workout:height',
+  bodyTypeOverride: 'workout:bodyTypeOverride'
 };
 
 const DEFAULT_REST_SECONDS = 90;
@@ -38,7 +40,8 @@ const ICONS = {
   plan: '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6h11"/><path d="M9 12h11"/><path d="M9 18h11"/><circle cx="4.5" cy="6" r="1.3" fill="currentColor" stroke="none"/><circle cx="4.5" cy="12" r="1.3" fill="currentColor" stroke="none"/><circle cx="4.5" cy="18" r="1.3" fill="currentColor" stroke="none"/></svg>',
   play: '<svg class="icon" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>',
   drop: '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3s7 7.5 7 12a7 7 0 0 1-14 0c0-4.5 7-12 7-12z"/></svg>',
-  lightbulb: '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6"/><path d="M10 21h4"/><path d="M12 3a6 6 0 0 0-4 10.5c.6.55 1 1.4 1 2.2V16h6v-.3c0-.8.4-1.65 1-2.2A6 6 0 0 0 12 3z"/></svg>'
+  lightbulb: '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6"/><path d="M10 21h4"/><path d="M12 3a6 6 0 0 0-4 10.5c.6.55 1 1.4 1 2.2V16h6v-.3c0-.8.4-1.65 1-2.2A6 6 0 0 0 12 3z"/></svg>',
+  image: '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>'
 };
 
 const CATEGORY_META = {
@@ -105,7 +108,12 @@ let state = {
   planBuilder: { editingPlanId: null, name: '', exerciseIds: [] },
   showPlanPicker: false,
   showPlanExtra: false,
-  needsOnboarding: false
+  needsOnboarding: false,
+  heightCm: null,
+  bodyTypeOverride: null,
+  progressPhotos: [],
+  progressPhotosLoaded: false,
+  viewingPhotoDate: null
 };
 
 let audioCtx = null;
@@ -190,6 +198,10 @@ function loadState() {
     state.bodyweightLogs = JSON.parse(localStorage.getItem(STORAGE_KEYS.bodyweight)) || [];
   } catch { state.bodyweightLogs = []; }
 
+  const storedHeight = parseFloat(localStorage.getItem(STORAGE_KEYS.height));
+  state.heightCm = isNaN(storedHeight) ? null : storedHeight;
+  state.bodyTypeOverride = localStorage.getItem(STORAGE_KEYS.bodyTypeOverride) || null;
+
   state.activePlanId = localStorage.getItem(STORAGE_KEYS.activePlan) || null;
   if (state.activePlanId && !state.plans.find(p => p.id === state.activePlanId)) {
     state.activePlanId = null; // план мог быть удалён — не оставляем висячую ссылку
@@ -261,6 +273,36 @@ function upsertBodyweightLog(date, weight) {
 function getLatestBodyweight() {
   if (!state.bodyweightLogs.length) return null;
   return [...state.bodyweightLogs].sort((a, b) => b.date.localeCompare(a.date))[0];
+}
+
+function saveHeight() {
+  if (state.heightCm) {
+    localStorage.setItem(STORAGE_KEYS.height, String(state.heightCm));
+  } else {
+    localStorage.removeItem(STORAGE_KEYS.height);
+  }
+}
+
+function saveBodyTypeOverride() {
+  if (state.bodyTypeOverride) {
+    localStorage.setItem(STORAGE_KEYS.bodyTypeOverride, state.bodyTypeOverride);
+  } else {
+    localStorage.removeItem(STORAGE_KEYS.bodyTypeOverride);
+  }
+}
+
+function computeBMI(weightKg, heightCm) {
+  if (!weightKg || !heightCm) return null;
+  const heightM = heightCm / 100;
+  return weightKg / (heightM * heightM);
+}
+
+function bmiToBodyTypeId(bmi) {
+  if (bmi === null) return null;
+  if (bmi < 18.5) return 'thin';
+  if (bmi < 25) return 'athletic';
+  if (bmi < 30) return 'muscular';
+  return 'bulky';
 }
 
 function saveActivePlanId() {
@@ -1474,6 +1516,8 @@ function renderAnalytics() {
   panel.innerHTML = `
     ${renderStreakCalendar()}
     ${renderBodyweightSection(startDate, endDate)}
+    ${renderBodyTypeSection()}
+    ${renderProgressPhotosSection()}
     ${renderRecordsSection()}
     <div class="card">
       <label class="field-label">Период</label>
@@ -1494,6 +1538,8 @@ function renderAnalytics() {
   });
 
   attachBodyweightListeners();
+  attachBodyTypeListeners();
+  attachProgressPhotoListeners();
   renderSummaryCards(startDate, endDate);
   renderExerciseCharts(startDate, endDate);
 }
@@ -1547,6 +1593,7 @@ function renderBodyweightSection(startDate, endDate) {
       </div>
       <div class="bodyweight-input-row">
         <input type="number" id="bodyweight-input" inputmode="decimal" step="0.1" min="0" placeholder="Вес, кг" value="${todayLog ? todayLog.weight : ''}">
+        <input type="number" id="body-height-input" inputmode="numeric" step="1" min="0" placeholder="Рост, см" value="${state.heightCm || ''}">
         <button class="btn-secondary bodyweight-save-btn" id="bodyweight-save-btn">${ICONS.check}<span>Сохранить</span></button>
       </div>
       ${latest ? `<div class="last-hint">Последний раз: ${formatDateHuman(latest.date)} — ${latest.weight} кг</div>` : ''}
@@ -1559,13 +1606,310 @@ function renderBodyweightSection(startDate, endDate) {
 function attachBodyweightListeners() {
   const saveBtn = document.getElementById('bodyweight-save-btn');
   const input = document.getElementById('bodyweight-input');
+  const heightInput = document.getElementById('body-height-input');
   if (!saveBtn || !input) return;
   saveBtn.addEventListener('click', () => {
     const weight = parseFloat(input.value);
-    if (isNaN(weight) || weight <= 0) return;
+    if (heightInput) {
+      const height = parseFloat(heightInput.value);
+      state.heightCm = isNaN(height) || height <= 0 ? null : height;
+      saveHeight();
+    }
+    if (isNaN(weight) || weight <= 0) {
+      renderAnalytics();
+      return;
+    }
     upsertBodyweightLog(todayISO(), weight);
     renderAnalytics();
   });
+}
+
+// ---------- Типаж телосложения (по ИМТ, с ручным переключением) ----------
+
+const BODY_TYPES = [
+  { id: 'thin', label: 'Худой', shoulder: 26, waist: 20, hip: 22, arm: 6 },
+  { id: 'athletic', label: 'Спортивный', shoulder: 34, waist: 22, hip: 24, arm: 8 },
+  { id: 'muscular', label: 'Атлет', shoulder: 38, waist: 24, hip: 26, arm: 9.5 },
+  { id: 'bulky', label: 'Качок', shoulder: 44, waist: 32, hip: 32, arm: 13 }
+];
+
+function bodySilhouetteSvg(type) {
+  const cx = 30;
+  const topY = 28, midY = 50, botY = 68, legBottomY = 118;
+  const s = type.shoulder / 2, w = type.waist / 2, h = type.hip / 2, a = type.arm;
+  const points = [
+    [cx - s, topY], [cx + s, topY],
+    [cx + w, midY],
+    [cx + h, botY], [cx - h, botY],
+    [cx - w, midY]
+  ].map(p => p.join(',')).join(' ');
+  const legWidth = (h * 2 - 4) / 2;
+  return `
+    <svg viewBox="0 0 60 120" fill="currentColor">
+      <circle cx="${cx}" cy="14" r="9"/>
+      <rect x="${(cx - s - a).toFixed(1)}" y="${topY + 2}" width="${a}" height="38" rx="${(a / 2).toFixed(1)}"/>
+      <rect x="${(cx + s).toFixed(1)}" y="${topY + 2}" width="${a}" height="38" rx="${(a / 2).toFixed(1)}"/>
+      <polygon points="${points}"/>
+      <rect x="${(cx - h).toFixed(1)}" y="${botY}" width="${legWidth.toFixed(1)}" height="${legBottomY - botY}" rx="4"/>
+      <rect x="${(cx + h - legWidth).toFixed(1)}" y="${botY}" width="${legWidth.toFixed(1)}" height="${legBottomY - botY}" rx="4"/>
+    </svg>
+  `;
+}
+
+function renderBodyTypeSection() {
+  const latestBW = getLatestBodyweight();
+  const bmi = latestBW && state.heightCm ? computeBMI(latestBW.weight, state.heightCm) : null;
+  const autoTypeId = bmiToBodyTypeId(bmi);
+  const activeTypeId = state.bodyTypeOverride || autoTypeId;
+
+  const tilesHtml = BODY_TYPES.map(t => `
+    <button class="body-type-tile ${t.id === activeTypeId ? 'body-type-tile-active' : ''}" data-body-type="${t.id}">
+      <span class="body-type-icon">${bodySilhouetteSvg(t)}</span>
+      <span class="body-type-label">${t.label}</span>
+    </button>
+  `).join('');
+
+  let noteHtml;
+  if (!latestBW || !state.heightCm) {
+    noteHtml = '<p class="empty-hint">Укажи рост и вес в карточке «Вес тела» для предположения — или просто выбери типаж вручную.</p>';
+  } else if (state.bodyTypeOverride) {
+    noteHtml = `<p class="modal-hint">Выбрано вручную. <button class="btn-ghost" id="body-type-reset-btn">Сбросить на авторасчёт по ИМТ</button></p>`;
+  } else {
+    noteHtml = `<p class="modal-hint">Предположение по ИМТ (${bmi.toFixed(1)}) — это приблизительно и не учитывает состав тела (мышцы/жир). Нажми на другой вариант, если не похоже.</p>`;
+  }
+
+  return `
+    <div class="card body-type-card">
+      <div class="entry-head"><strong>Типаж телосложения</strong></div>
+      <div class="body-type-grid">${tilesHtml}</div>
+      ${noteHtml}
+    </div>
+  `;
+}
+
+function attachBodyTypeListeners() {
+  document.querySelectorAll('[data-body-type]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      state.bodyTypeOverride = btn.dataset.bodyType;
+      saveBodyTypeOverride();
+      renderAnalytics();
+    });
+  });
+  const resetBtn = document.getElementById('body-type-reset-btn');
+  if (resetBtn) {
+    resetBtn.addEventListener('click', () => {
+      state.bodyTypeOverride = null;
+      saveBodyTypeOverride();
+      renderAnalytics();
+    });
+  }
+}
+
+// ---------- Фото прогресса (хранятся в IndexedDB, не в localStorage/бэкапе) ----------
+
+const PHOTO_DB_NAME = 'workout-photos';
+const PHOTO_STORE_NAME = 'photos';
+
+function openPhotoDB() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(PHOTO_DB_NAME, 1);
+    req.onupgradeneeded = () => {
+      const db = req.result;
+      if (!db.objectStoreNames.contains(PHOTO_STORE_NAME)) {
+        db.createObjectStore(PHOTO_STORE_NAME, { keyPath: 'date' });
+      }
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function savePhoto(date, dataUrl) {
+  const db = await openPhotoDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(PHOTO_STORE_NAME, 'readwrite');
+    tx.objectStore(PHOTO_STORE_NAME).put({ date, dataUrl });
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
+async function deletePhotoRecord(date) {
+  const db = await openPhotoDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(PHOTO_STORE_NAME, 'readwrite');
+    tx.objectStore(PHOTO_STORE_NAME).delete(date);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
+async function getAllPhotos() {
+  const db = await openPhotoDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(PHOTO_STORE_NAME, 'readonly');
+    const req = tx.objectStore(PHOTO_STORE_NAME).getAll();
+    req.onsuccess = () => resolve(req.result.sort((a, b) => a.date.localeCompare(b.date)));
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function loadProgressPhotos() {
+  try {
+    state.progressPhotos = await getAllPhotos();
+  } catch {
+    state.progressPhotos = [];
+  }
+  state.progressPhotosLoaded = true;
+  if (state.tab === 'analytics') renderAnalytics();
+}
+
+function resizeImageFile(file, maxDim = 900, quality = 0.75) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        let { width, height } = img;
+        if (width > maxDim || height > maxDim) {
+          if (width > height) {
+            height = Math.round(height * (maxDim / width));
+            width = maxDim;
+          } else {
+            width = Math.round(width * (maxDim / height));
+            height = maxDim;
+          }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.onerror = () => reject(new Error('image load failed'));
+      img.src = reader.result;
+    };
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(file);
+  });
+}
+
+function renderPhotoViewer(date) {
+  const photo = state.progressPhotos.find(p => p.date === date);
+  if (!photo) return '';
+  return `
+    <div class="photo-viewer-overlay" id="photo-viewer-overlay">
+      <div class="photo-viewer-inner">
+        <button class="icon-btn photo-viewer-close" id="photo-viewer-close-btn" aria-label="Закрыть">${ICONS.close}</button>
+        <img src="${photo.dataUrl}" alt="${formatDateHuman(photo.date)}">
+        <div class="photo-viewer-footer">
+          <span>${formatDateHuman(photo.date)}</span>
+          <button class="btn-ghost" id="photo-viewer-delete-btn">Удалить</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderProgressPhotosSection() {
+  const photos = state.progressPhotos;
+  const todayHasPhoto = photos.some(p => p.date === todayISO());
+
+  const galleryHtml = photos.length
+    ? `<div class="photo-gallery">${photos.map(p => `
+        <button class="photo-thumb" data-photo-date="${p.date}">
+          <img src="${p.dataUrl}" alt="${formatDateHuman(p.date)}">
+          <span class="photo-thumb-date">${formatDateHuman(p.date)}</span>
+        </button>
+      `).join('')}</div>`
+    : '<p class="empty-hint">Пока нет фото. Загрузи первое, чтобы отслеживать визуальный прогресс.</p>';
+
+  return `
+    <div class="card photo-progress-card">
+      <div class="entry-head"><strong>Фото прогресса</strong></div>
+      <p class="modal-hint">Хранятся только в этом браузере, отдельно от резервной копии. По одному фото на день.</p>
+      <input type="file" id="photo-upload-input" accept="image/*" hidden>
+      <button class="btn-secondary" id="photo-upload-btn">${ICONS.image}<span>${todayHasPhoto ? 'Заменить фото за сегодня' : 'Загрузить фото'}</span></button>
+      ${photos.length ? '<button class="btn-ghost" id="photo-export-btn">Скачать все фото</button>' : ''}
+      ${galleryHtml}
+    </div>
+    ${state.viewingPhotoDate ? renderPhotoViewer(state.viewingPhotoDate) : ''}
+  `;
+}
+
+function attachProgressPhotoListeners() {
+  const uploadBtn = document.getElementById('photo-upload-btn');
+  const fileInput = document.getElementById('photo-upload-input');
+  if (uploadBtn && fileInput) {
+    uploadBtn.addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      e.target.value = '';
+      if (!file) return;
+      try {
+        const dataUrl = await resizeImageFile(file);
+        await savePhoto(todayISO(), dataUrl);
+        state.progressPhotos = await getAllPhotos();
+        renderAnalytics();
+      } catch {
+        alert('Не удалось загрузить фото. Попробуйте другое изображение.');
+      }
+    });
+  }
+
+  document.querySelectorAll('[data-photo-date]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      state.viewingPhotoDate = btn.dataset.photoDate;
+      renderAnalytics();
+    });
+  });
+
+  const closeBtn = document.getElementById('photo-viewer-close-btn');
+  if (closeBtn) {
+    closeBtn.addEventListener('click', () => {
+      state.viewingPhotoDate = null;
+      renderAnalytics();
+    });
+  }
+
+  const overlay = document.getElementById('photo-viewer-overlay');
+  if (overlay) {
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) {
+        state.viewingPhotoDate = null;
+        renderAnalytics();
+      }
+    });
+  }
+
+  const deleteBtn = document.getElementById('photo-viewer-delete-btn');
+  if (deleteBtn) {
+    deleteBtn.addEventListener('click', async () => {
+      if (!confirm('Удалить это фото?')) return;
+      const date = state.viewingPhotoDate;
+      await deletePhotoRecord(date);
+      state.progressPhotos = state.progressPhotos.filter(p => p.date !== date);
+      state.viewingPhotoDate = null;
+      renderAnalytics();
+    });
+  }
+
+  const exportBtn = document.getElementById('photo-export-btn');
+  if (exportBtn) {
+    exportBtn.addEventListener('click', () => {
+      state.progressPhotos.forEach((p, i) => {
+        setTimeout(() => {
+          const a = document.createElement('a');
+          a.href = p.dataUrl;
+          a.download = `progress-photo-${p.date}.jpg`;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+        }, i * 150);
+      });
+    });
+  }
 }
 
 function getTrainedDatesSet() {
@@ -1987,6 +2331,33 @@ const GYM_TIPS = [
     ]
   },
   {
+    title: 'Подтягивания и тяга блока',
+    color: CATEGORY_META.strength.color,
+    items: [
+      'Начинайте движение с сведения лопаток, а не с рук — так в работу включается спина, а не только бицепс.',
+      'Не раскачивайтесь корпусом и не подтягивайтесь рывком — амплитуда должна быть подконтрольной в обе стороны.',
+      'Внизу полностью выпрямляйте руки — неполная амплитуда меньше нагружает широчайшие мышцы.'
+    ]
+  },
+  {
+    title: 'Растяжка и восстановление',
+    color: '#7cae70',
+    items: [
+      'Лёгкая растяжка после тренировки, пока мышцы ещё тёплые, помогает быстрее вернуть подвижность суставов.',
+      'Между тренировками одной группы мышц — минимум 48 часов на восстановление, особенно для новичков.',
+      'Боль в мышцах на следующий день — это нормально, острая боль в суставах во время движения — повод снизить вес или остановиться.'
+    ]
+  },
+  {
+    title: 'Питание вокруг тренировки',
+    color: '#7a97ac',
+    items: [
+      'За 1.5–2 часа до тренировки — приём пищи с белком и углеводами, чтобы были силы на рабочие подходы.',
+      'В течение 1–2 часов после тренировки — белок (мясо, рыба, творог, протеин) помогает восстановлению мышц.',
+      'Общий дневной баланс калорий и белка важнее точного времени приёма пищи — не зацикливайтесь на минутах.'
+    ]
+  },
+  {
     title: 'Общие принципы',
     color: '#7a97ac',
     items: [
@@ -2125,6 +2496,7 @@ function init() {
   });
   render();
   setInterval(tickTimers, 1000);
+  loadProgressPhotos();
 
   if (state.needsOnboarding) {
     const overlay = document.getElementById('welcome-overlay');
