@@ -113,7 +113,8 @@ let state = {
   bodyTypeOverride: null,
   progressPhotos: [],
   progressPhotosLoaded: false,
-  viewingPhotoDate: null
+  viewingPhotoDate: null,
+  tipsCategory: 'technique'
 };
 
 let audioCtx = null;
@@ -2280,10 +2281,19 @@ function renderOrmResult() {
 
 // ---------- Советы ----------
 
+const TIP_CATEGORIES = [
+  { id: 'technique', label: 'Техника' },
+  { id: 'nutrition', label: 'Питание' },
+  { id: 'recovery', label: 'Восстановление' },
+  { id: 'general', label: 'Общее' }
+];
+
 const GYM_TIPS = [
   {
+    category: 'technique',
     title: 'Жим штанги лёжа',
     color: CATEGORY_META.strength.color,
+    diagram: 'benchWrist',
     items: [
       'Кисти держите прямо над локтями, не заваливайте их назад — так меньше нагрузка на лучезапястный сустав.',
       'Сведите и прижмите лопатки к скамье, сохраняйте естественный прогиб в пояснице (мостик) — это стабилизирует корпус и сокращает путь штанги.',
@@ -2291,8 +2301,10 @@ const GYM_TIPS = [
     ]
   },
   {
+    category: 'technique',
     title: 'Присед со штангой',
     color: CATEGORY_META.strength.color,
+    diagram: 'squatKnees',
     items: [
       'Колени двигаются в направлении носков и не заваливаются внутрь.',
       'Смотрите перед собой, а не в потолок — так легче удерживать нейтральное положение шеи и спины.',
@@ -2300,6 +2312,7 @@ const GYM_TIPS = [
     ]
   },
   {
+    category: 'technique',
     title: 'Становая тяга',
     color: CATEGORY_META.strength.color,
     items: [
@@ -2309,8 +2322,10 @@ const GYM_TIPS = [
     ]
   },
   {
+    category: 'technique',
     title: 'Подтягивания и тяга блока',
     color: CATEGORY_META.strength.color,
+    diagram: 'backPull',
     items: [
       'Начинайте движение с сведения лопаток, а не с рук — так в работу включается спина, а не только бицепс.',
       'Не раскачивайтесь корпусом и не подтягивайтесь рывком — амплитуда должна быть подконтрольной в обе стороны.',
@@ -2318,6 +2333,37 @@ const GYM_TIPS = [
     ]
   },
   {
+    category: 'technique',
+    title: 'Жим гантелей стоя',
+    color: CATEGORY_META.strength.color,
+    items: [
+      'Не прогибайтесь сильно в пояснице, чтобы закинуть вес наверх — если приходится прогибаться, вес слишком большой.',
+      'В верхней точке не сталкивайте гантели друг с другом резко — это лишняя нагрузка на плечевой сустав без пользы для мышц.',
+      'Опускайте гантели до уровня ушей, не ниже — глубокий заход в плохой позиции травмоопасен для плеч.'
+    ]
+  },
+  {
+    category: 'technique',
+    title: 'Румынская тяга',
+    color: CATEGORY_META.strength.color,
+    items: [
+      'Гриф скользит вдоль ног, колени лишь слегка подсогнуты — это упражнение на бёдра и ягодицы, не на квадрицепс.',
+      'Опускайтесь, пока чувствуете растяжение задней поверхности бедра, спина всё время прямая.',
+      'Возврат наверх — это разгибание в тазобедренном суставе (подать таз вперёд), а не рывок спиной.'
+    ]
+  },
+  {
+    category: 'technique',
+    title: 'Ягодичный мост',
+    color: CATEGORY_META.strength.color,
+    items: [
+      'В верхней точке сожмите ягодицы на секунду — это осознанное сокращение важнее самого веса на грифе.',
+      'Подбородок слегка к груди, не запрокидывайте голову назад — так шея остаётся в нейтральном положении.',
+      'Стопы стоят на ширине таза, гриф лежит на бёдрах, а не на животе — используйте подкладку под штангу.'
+    ]
+  },
+  {
+    category: 'recovery',
     title: 'Растяжка и восстановление',
     color: '#7cae70',
     items: [
@@ -2327,6 +2373,17 @@ const GYM_TIPS = [
     ]
   },
   {
+    category: 'recovery',
+    title: 'Сон',
+    color: '#7cae70',
+    items: [
+      '7–9 часов сна для взрослого — именно во сне мышцы восстанавливаются и растут, а не в зале.',
+      'Недосып повышает риск травм и мешает прогрессии весов — если не выспались, снизьте нагрузку в этот день.',
+      'Стабильное время отбоя важнее общего количества часов сна одну ночь в неделю.'
+    ]
+  },
+  {
+    category: 'nutrition',
     title: 'Питание вокруг тренировки',
     color: '#7a97ac',
     items: [
@@ -2336,6 +2393,17 @@ const GYM_TIPS = [
     ]
   },
   {
+    category: 'nutrition',
+    title: 'Белок и калории',
+    color: '#7a97ac',
+    items: [
+      'Ориентир по белку для тренирующегося — примерно 1.6–2.2 г на кг веса тела в сутки, распределённо на несколько приёмов пищи.',
+      'Для роста мышц нужен небольшой избыток калорий, для похудения — небольшой дефицит; и то, и то — при достаточном белке.',
+      'Резкий дефицит калорий вместе с тяжёлыми тренировками истощает силы и мешает восстановлению — снижайте калории постепенно.'
+    ]
+  },
+  {
+    category: 'general',
     title: 'Общие принципы',
     color: '#7a97ac',
     items: [
@@ -2345,8 +2413,123 @@ const GYM_TIPS = [
       'Отдых между рабочими подходами: 2–3 минуты для силовой работы, 60–90 секунд для лёгких и многоповторных.',
       'Сон и достаточно белка в рационе — тоже часть тренировки: без восстановления результата не будет.'
     ]
+  },
+  {
+    category: 'general',
+    title: 'С чего начать новичку',
+    color: '#c9793f',
+    items: [
+      'Первые недели — учите технику на лёгких весах, а не гонитесь за рабочим весом. Форма движения важнее цифры на штанге.',
+      'Начните с 2–3 тренировок в неделю на всё тело — этого достаточно для старта, не нужно тренироваться каждый день.',
+      'Заведите план в разделе «Упражнения» — так вы не будете каждый раз придумывать тренировку заново.'
+    ]
   }
 ];
+
+// Схемы: правильно/неправильно, простые линейные силуэты.
+
+function renderBenchWristDiagram() {
+  return `
+    <div class="tip-diagram">
+      <div class="tip-diagram-panel correct">
+        <svg viewBox="0 0 100 140">
+          <rect x="20" y="20" width="60" height="14" rx="7" fill="#c9793f"/>
+          <line x1="50" y1="34" x2="50" y2="120" stroke="#7a97ac" stroke-width="1.5" stroke-dasharray="4 4"/>
+          <circle cx="50" cy="40" r="5" fill="none" stroke="#f5efe7" stroke-width="3"/>
+          <line x1="50" y1="45" x2="50" y2="90" stroke="#f5efe7" stroke-width="6" stroke-linecap="round"/>
+          <circle cx="50" cy="90" r="6" fill="none" stroke="#f5efe7" stroke-width="3"/>
+          <line x1="50" y1="95" x2="30" y2="125" stroke="#f5efe7" stroke-width="6" stroke-linecap="round"/>
+        </svg>
+        <span class="tip-diagram-badge">${ICONS.check}</span>
+        <span class="tip-diagram-label">Кисть прямая, над локтем</span>
+      </div>
+      <div class="tip-diagram-panel incorrect">
+        <svg viewBox="0 0 100 140">
+          <rect x="8" y="14" width="60" height="14" rx="7" fill="#c9793f"/>
+          <line x1="50" y1="34" x2="50" y2="120" stroke="#7a97ac" stroke-width="1.5" stroke-dasharray="4 4"/>
+          <circle cx="38" cy="34" r="5" fill="none" stroke="#f5efe7" stroke-width="3"/>
+          <line x1="38" y1="39" x2="50" y2="90" stroke="#f5efe7" stroke-width="6" stroke-linecap="round"/>
+          <circle cx="50" cy="90" r="6" fill="none" stroke="#f5efe7" stroke-width="3"/>
+          <line x1="50" y1="95" x2="30" y2="125" stroke="#f5efe7" stroke-width="6" stroke-linecap="round"/>
+        </svg>
+        <span class="tip-diagram-badge">${ICONS.close}</span>
+        <span class="tip-diagram-label">Кисть заваливается назад</span>
+      </div>
+    </div>
+  `;
+}
+
+function renderSquatKneesDiagram() {
+  return `
+    <div class="tip-diagram">
+      <div class="tip-diagram-panel correct">
+        <svg viewBox="0 0 100 140">
+          <line x1="50" y1="15" x2="50" y2="55" stroke="#f5efe7" stroke-width="7" stroke-linecap="round"/>
+          <circle cx="50" cy="8" r="8" fill="#f5efe7"/>
+          <circle cx="50" cy="55" r="4" fill="#f5efe7"/>
+          <line x1="50" y1="55" x2="30" y2="90" stroke="#f5efe7" stroke-width="6" stroke-linecap="round"/>
+          <line x1="50" y1="55" x2="70" y2="90" stroke="#f5efe7" stroke-width="6" stroke-linecap="round"/>
+          <line x1="30" y1="90" x2="28" y2="130" stroke="#f5efe7" stroke-width="6" stroke-linecap="round"/>
+          <line x1="70" y1="90" x2="72" y2="130" stroke="#f5efe7" stroke-width="6" stroke-linecap="round"/>
+          <line x1="30" y1="90" x2="28" y2="130" stroke="#7cae70" stroke-width="1" stroke-dasharray="3 3"/>
+        </svg>
+        <span class="tip-diagram-badge">${ICONS.check}</span>
+        <span class="tip-diagram-label">Колено по линии носка</span>
+      </div>
+      <div class="tip-diagram-panel incorrect">
+        <svg viewBox="0 0 100 140">
+          <line x1="50" y1="15" x2="50" y2="55" stroke="#f5efe7" stroke-width="7" stroke-linecap="round"/>
+          <circle cx="50" cy="8" r="8" fill="#f5efe7"/>
+          <circle cx="50" cy="55" r="4" fill="#f5efe7"/>
+          <line x1="50" y1="55" x2="45" y2="90" stroke="#f5efe7" stroke-width="6" stroke-linecap="round"/>
+          <line x1="50" y1="55" x2="55" y2="90" stroke="#f5efe7" stroke-width="6" stroke-linecap="round"/>
+          <line x1="45" y1="90" x2="28" y2="130" stroke="#f5efe7" stroke-width="6" stroke-linecap="round"/>
+          <line x1="55" y1="90" x2="72" y2="130" stroke="#f5efe7" stroke-width="6" stroke-linecap="round"/>
+        </svg>
+        <span class="tip-diagram-badge">${ICONS.close}</span>
+        <span class="tip-diagram-label">Колени заваливаются внутрь</span>
+      </div>
+    </div>
+  `;
+}
+
+function renderBackPullDiagram() {
+  return `
+    <div class="tip-diagram">
+      <div class="tip-diagram-panel correct">
+        <svg viewBox="0 0 100 140">
+          <path d="M32 22 L68 22 L60 72 Q50 78 40 72 Z" fill="rgba(124,174,112,0.3)" stroke="#7cae70" stroke-width="3"/>
+          <circle cx="50" cy="12" r="8" fill="#f5efe7"/>
+          <path d="M42 36 L48 42 L42 48" fill="none" stroke="#7cae70" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M58 36 L52 42 L58 48" fill="none" stroke="#7cae70" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+          <line x1="32" y1="28" x2="16" y2="52" stroke="#f5efe7" stroke-width="6" stroke-linecap="round"/>
+          <line x1="68" y1="28" x2="84" y2="52" stroke="#f5efe7" stroke-width="6" stroke-linecap="round"/>
+        </svg>
+        <span class="tip-diagram-badge">${ICONS.check}</span>
+        <span class="tip-diagram-label">Лопатки сводятся — работает спина</span>
+      </div>
+      <div class="tip-diagram-panel incorrect">
+        <svg viewBox="0 0 100 140">
+          <path d="M36 26 L64 26 L58 72 Q50 76 42 72 Z" fill="none" stroke="#f5efe7" stroke-width="3"/>
+          <circle cx="50" cy="16" r="8" fill="#f5efe7"/>
+          <ellipse cx="74" cy="46" rx="8" ry="13" fill="rgba(193,92,80,0.35)" stroke="#c15c50" stroke-width="2"/>
+          <line x1="64" y1="30" x2="74" y2="55" stroke="#f5efe7" stroke-width="6" stroke-linecap="round"/>
+          <line x1="74" y1="55" x2="56" y2="36" stroke="#f5efe7" stroke-width="6" stroke-linecap="round"/>
+          <line x1="36" y1="30" x2="34" y2="62" stroke="#f5efe7" stroke-width="6" stroke-linecap="round"/>
+        </svg>
+        <span class="tip-diagram-badge">${ICONS.close}</span>
+        <span class="tip-diagram-label">Работает только рука (бицепс)</span>
+      </div>
+    </div>
+  `;
+}
+
+function renderTipDiagram(key) {
+  if (key === 'benchWrist') return renderBenchWristDiagram();
+  if (key === 'squatKnees') return renderSquatKneesDiagram();
+  if (key === 'backPull') return renderBackPullDiagram();
+  return '';
+}
 
 function renderWaterCalcCard() {
   const latest = getLatestBodyweight();
@@ -2379,23 +2562,47 @@ function updateWaterResult() {
   `;
 }
 
+function renderTipCard(section) {
+  return `
+    <div class="card tip-card" style="border-top-color:${section.color}">
+      <div class="entry-head tip-card-head" style="color:${section.color}">${ICONS.lightbulb}<strong>${escapeHtml(section.title)}</strong></div>
+      ${section.diagram ? renderTipDiagram(section.diagram) : ''}
+      <ul class="tip-list">
+        ${section.items.map(t => `<li>${escapeHtml(t)}</li>`).join('')}
+      </ul>
+    </div>
+  `;
+}
+
 function renderTips() {
   const panel = document.getElementById('panel-tips');
+  const activeCategory = state.tipsCategory;
+
+  const tabsHtml = TIP_CATEGORIES.map(c => `
+    <button class="chip ${c.id === activeCategory ? 'chip-active' : ''}" data-tips-category="${c.id}">${c.label}</button>
+  `).join('');
+
+  const cardsHtml = GYM_TIPS.filter(t => t.category === activeCategory).map(renderTipCard).join('');
+  const waterCalcHtml = activeCategory === 'nutrition' ? renderWaterCalcCard() : '';
+
   panel.innerHTML = `
-    ${renderWaterCalcCard()}
-    ${GYM_TIPS.map(section => `
-      <div class="card tip-card" style="border-top-color:${section.color}">
-        <div class="entry-head tip-card-head" style="color:${section.color}">${ICONS.lightbulb}<strong>${escapeHtml(section.title)}</strong></div>
-        <ul class="tip-list">
-          ${section.items.map(t => `<li>${escapeHtml(t)}</li>`).join('')}
-        </ul>
-      </div>
-    `).join('')}
+    <div class="tips-category-row">${tabsHtml}</div>
+    ${waterCalcHtml}
+    ${cardsHtml}
   `;
 
+  panel.querySelectorAll('[data-tips-category]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      state.tipsCategory = btn.dataset.tipsCategory;
+      renderTips();
+    });
+  });
+
   const waterInput = document.getElementById('water-weight-input');
-  if (waterInput) waterInput.addEventListener('input', updateWaterResult);
-  updateWaterResult();
+  if (waterInput) {
+    waterInput.addEventListener('input', updateWaterResult);
+    updateWaterResult();
+  }
 }
 
 // ---------- Данные и инструменты (модальное окно) ----------

@@ -1404,6 +1404,46 @@ input[type="date"]::-webkit-inner-spin-button {
   line-height: 1.5;
 }
 
+.tips-category-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.tip-diagram {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.tip-diagram-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 8px;
+  border-radius: 12px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+}
+
+.tip-diagram-panel svg { width: 70px; height: auto; }
+
+.tip-diagram-panel.correct { border-color: rgba(var(--up-rgb), 0.4); }
+.tip-diagram-panel.incorrect { border-color: rgba(var(--down-rgb), 0.4); }
+
+.tip-diagram-badge .icon { width: 16px; height: 16px; }
+.tip-diagram-panel.correct .tip-diagram-badge { color: var(--up); }
+.tip-diagram-panel.incorrect .tip-diagram-badge { color: var(--down); }
+
+.tip-diagram-label {
+  font-size: 11px;
+  text-align: center;
+  color: var(--text-muted);
+  line-height: 1.3;
+}
+
 /* ---------- Нижняя навигация: гриф штанги с блинами вместо вкладок ---------- */
 
 .bottom-nav {
