@@ -374,8 +374,12 @@ body {
 }
 
 .plate-remainder {
-  font-size: 11px;
-  color: var(--text-muted);
+  grid-column: 1 / -1;
+  display: block;
+  width: 100%;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--down);
 }
 
 /* ---------- Layout ---------- */

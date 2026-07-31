@@ -1058,8 +1058,14 @@ function updateInlinePlateHint(container) {
     </span>
   `).join('');
 
+  const shortBy = remainder * 2;
+  const achievable = weight - shortBy;
+  const warningHtml = shortBy > 0.01
+    ? `<span class="plate-remainder">⚠ Нет блина на ${shortBy.toFixed(2)} кг — соберётся ${achievable.toFixed(2)} кг вместо ${weight}</span>`
+    : '';
+
   hintEl.hidden = false;
-  hintEl.innerHTML = `${chipsHtml}${remainder > 0.01 ? `<span class="plate-remainder">+${remainder.toFixed(2)} кг</span>` : ''}`;
+  hintEl.innerHTML = `${chipsHtml}${warningHtml}`;
 }
 
 function attachPlateHintListener(containerId) {
@@ -2249,10 +2255,13 @@ function renderPlateResult() {
     </div>
   `).join('');
 
+  const shortBy = remainder * 2;
+  const achievable = target - shortBy;
+
   resultEl.innerHTML = `
     <div class="calc-hint">На каждую сторону (${perSide.toFixed(2)} кг):</div>
     <div class="plate-chips">${chipsHtml}</div>
-    ${remainder > 0.01 ? `<div class="calc-hint">Остаток ${remainder.toFixed(2)} кг — нет подходящих блинов</div>` : ''}
+    ${shortBy > 0.01 ? `<div class="plate-remainder">⚠ Нет блина на ${shortBy.toFixed(2)} кг — соберётся ${achievable.toFixed(2)} кг вместо ${target}</div>` : ''}
   `;
 }
 
