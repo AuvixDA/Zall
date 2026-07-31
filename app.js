@@ -1627,34 +1627,11 @@ function attachBodyweightListeners() {
 // ---------- Типаж телосложения (по ИМТ, с ручным переключением) ----------
 
 const BODY_TYPES = [
-  { id: 'thin', label: 'Худой', shoulder: 26, waist: 20, hip: 22, arm: 6 },
-  { id: 'athletic', label: 'Спортивный', shoulder: 34, waist: 22, hip: 24, arm: 8 },
-  { id: 'muscular', label: 'Атлет', shoulder: 38, waist: 24, hip: 26, arm: 9.5 },
-  { id: 'bulky', label: 'Качок', shoulder: 44, waist: 32, hip: 32, arm: 13 }
+  { id: 'thin', label: 'Худой', bmiHint: 'ИМТ < 18.5', img: 'body-type-thin.png' },
+  { id: 'athletic', label: 'Спортивный', bmiHint: 'ИМТ 18.5–25', img: 'body-type-athletic.png' },
+  { id: 'muscular', label: 'Атлет', bmiHint: 'ИМТ 25–30', img: 'body-type-muscular.png' },
+  { id: 'bulky', label: 'Качок', bmiHint: 'ИМТ 30+', img: 'body-type-bulky.png' }
 ];
-
-function bodySilhouetteSvg(type) {
-  const cx = 30;
-  const topY = 28, midY = 50, botY = 68, legBottomY = 118;
-  const s = type.shoulder / 2, w = type.waist / 2, h = type.hip / 2, a = type.arm;
-  const points = [
-    [cx - s, topY], [cx + s, topY],
-    [cx + w, midY],
-    [cx + h, botY], [cx - h, botY],
-    [cx - w, midY]
-  ].map(p => p.join(',')).join(' ');
-  const legWidth = (h * 2 - 4) / 2;
-  return `
-    <svg viewBox="0 0 60 120" fill="currentColor">
-      <circle cx="${cx}" cy="14" r="9"/>
-      <rect x="${(cx - s - a).toFixed(1)}" y="${topY + 2}" width="${a}" height="38" rx="${(a / 2).toFixed(1)}"/>
-      <rect x="${(cx + s).toFixed(1)}" y="${topY + 2}" width="${a}" height="38" rx="${(a / 2).toFixed(1)}"/>
-      <polygon points="${points}"/>
-      <rect x="${(cx - h).toFixed(1)}" y="${botY}" width="${legWidth.toFixed(1)}" height="${legBottomY - botY}" rx="4"/>
-      <rect x="${(cx + h - legWidth).toFixed(1)}" y="${botY}" width="${legWidth.toFixed(1)}" height="${legBottomY - botY}" rx="4"/>
-    </svg>
-  `;
-}
 
 function renderBodyTypeSection() {
   const latestBW = getLatestBodyweight();
@@ -1664,8 +1641,9 @@ function renderBodyTypeSection() {
 
   const tilesHtml = BODY_TYPES.map(t => `
     <button class="body-type-tile ${t.id === activeTypeId ? 'body-type-tile-active' : ''}" data-body-type="${t.id}">
-      <span class="body-type-icon">${bodySilhouetteSvg(t)}</span>
+      <span class="body-type-icon" style="--body-img: url('${t.img}')"></span>
       <span class="body-type-label">${t.label}</span>
+      <span class="body-type-bmi">${t.bmiHint}</span>
     </button>
   `).join('');
 

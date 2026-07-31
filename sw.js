@@ -1,4 +1,4 @@
-const CACHE_NAME = 'workout-tracker-v4';
+const CACHE_NAME = 'workout-tracker-v5';
 const ASSETS = [
   './',
   './index.html',
@@ -8,7 +8,11 @@ const ASSETS = [
   './icon-192.png',
   './icon-512.png',
   './icon-512-maskable.png',
-  './gym-wall.jpg'
+  './gym-wall.jpg',
+  './body-type-thin.png',
+  './body-type-athletic.png',
+  './body-type-muscular.png',
+  './body-type-bulky.png'
 ];
 
 self.addEventListener('install', (event) => {
